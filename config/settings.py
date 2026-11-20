@@ -21,6 +21,14 @@ ALLOWED_HOSTS = [
     for h in os.environ.get('DJANGO_ALLOWED_HOSTS', '127.0.0.1,localhost').split(',')
     if h.strip()
 ]
+# Render injecte l’hostname public automatiquement
+_render_host = os.environ.get('RENDER_EXTERNAL_HOSTNAME', '').strip()
+if _render_host and _render_host not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(_render_host)
+# Sous-domaines Render + hôte connu du service
+for _extra in ('.onrender.com', 'soin-sodeci.onrender.com'):
+    if _extra not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(_extra)
 if DEBUG and '*' not in ALLOWED_HOSTS:
     ALLOWED_HOSTS = list({*ALLOWED_HOSTS, '127.0.0.1', 'localhost', 'testserver'})
 
@@ -32,6 +40,13 @@ CSRF_TRUSTED_ORIGINS = [
     ).split(',')
     if o.strip()
 ]
+if _render_host:
+    _origin = f'https://{_render_host}'
+    if _origin not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(_origin)
+_soin_origin = 'https://soin-sodeci.onrender.com'
+if _soin_origin not in CSRF_TRUSTED_ORIGINS:
+    CSRF_TRUSTED_ORIGINS.append(_soin_origin)
 
 INSTALLED_APPS = [
     'django.contrib.admin',
