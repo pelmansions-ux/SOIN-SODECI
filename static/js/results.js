@@ -99,10 +99,10 @@
     // Fond détaillé (rues, quartiers, POI) — style proche Google
     if (window.SoinMapTiles) window.SoinMapTiles.addBaseTiles(map);
     else {
-      L.tileLayer(
-        'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-        { maxZoom: 20, subdomains: 'abcd' }
-      ).addTo(map);
+      L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
+        maxZoom: 20,
+        subdomains: 'abc',
+      }).addTo(map);
     }
     markersLayer = L.layerGroup().addTo(map);
     routeLayer = L.layerGroup().addTo(map);
@@ -664,10 +664,10 @@
         );
         if (window.SoinMapTiles) window.SoinMapTiles.addBaseTiles(miniMap);
         else {
-          L.tileLayer(
-            'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-            { maxZoom: 20, subdomains: 'abcd' }
-          ).addTo(miniMap);
+          L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
+            maxZoom: 20,
+            subdomains: 'abc',
+          }).addTo(miniMap);
         }
         L.marker([p.lat, p.lng]).addTo(miniMap);
         setTimeout(function () {

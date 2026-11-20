@@ -12,10 +12,10 @@
   );
   if (window.SoinMapTiles) window.SoinMapTiles.addBaseTiles(map);
   else {
-    L.tileLayer(
-      'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-      { maxZoom: 20, subdomains: 'abcd' }
-    ).addTo(map);
+    L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
+      maxZoom: 20,
+      subdomains: 'abc',
+    }).addTo(map);
   }
   L.marker([lat, lng]).addTo(map).bindPopup(name);
   setTimeout(function () { map.invalidateSize(); }, 150);

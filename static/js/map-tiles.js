@@ -1,6 +1,7 @@
 /**
- * Fond de carte détaillé (style proche Google Maps) — sans clé API.
- * Carto Voyager = rues, labels, POI lisibles. Fallback OSM FR puis Esri.
+ * Fond de carte détaillé sans clé API.
+ * OSM France / HOT (rues, labels) → OSM → Esri en secours.
+ * (Carto Voyager demande désormais une API key — ne plus l’utiliser.)
  */
 (function (global) {
   function addBaseTiles(map) {
@@ -8,11 +9,11 @@
 
     var layers = [
       {
-        url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+        url: 'https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png',
         options: {
           maxZoom: 20,
-          subdomains: 'abcd',
-          attribution: '&copy; OpenStreetMap &copy; CARTO',
+          subdomains: 'abc',
+          attribution: '&copy; OpenStreetMap, HOT',
         },
       },
       {
@@ -24,13 +25,17 @@
         },
       },
       {
+        url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+        options: {
+          maxZoom: 19,
+          attribution: '&copy; OpenStreetMap',
+        },
+      },
+      {
         url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
         options: { maxZoom: 19, attribution: 'Esri' },
       },
     ];
-
-    var idx = 0;
-    var layer = null;
 
     function attach(i) {
       if (i >= layers.length) return null;
@@ -41,15 +46,14 @@
         errors += 1;
         if (errors >= 4 && i + 1 < layers.length) {
           map.removeLayer(next);
-          layer = attach(i + 1);
+          attach(i + 1);
         }
       });
       next.addTo(map);
       return next;
     }
 
-    layer = attach(idx);
-    return layer;
+    return attach(0);
   }
 
   global.SoinMapTiles = { addBaseTiles: addBaseTiles };

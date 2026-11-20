@@ -76,10 +76,10 @@
     map = L.map(mapEl, { scrollWheelZoom: true, maxZoom: 20 }).setView([5.36, -4.01], 8);
     if (window.SoinMapTiles) window.SoinMapTiles.addBaseTiles(map);
     else {
-      L.tileLayer(
-        'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-        { maxZoom: 20, subdomains: 'abcd' }
-      ).addTo(map);
+      L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
+        maxZoom: 20,
+        subdomains: 'abc',
+      }).addTo(map);
     }
     markersLayer = L.layerGroup().addTo(map);
 

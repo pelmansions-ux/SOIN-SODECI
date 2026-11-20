@@ -18,10 +18,10 @@
   const map = L.map(mapEl, { maxZoom: 20 }).setView([5.36, -4.01], 7);
   if (window.SoinMapTiles) window.SoinMapTiles.addBaseTiles(map);
   else {
-    L.tileLayer(
-      'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-      { maxZoom: 20, subdomains: 'abcd' }
-    ).addTo(map);
+    L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
+      maxZoom: 20,
+      subdomains: 'abc',
+    }).addTo(map);
   }
 
   const cluster = L.markerClusterGroup({ showCoverageOnHover: false, maxClusterRadius: 50 });
