@@ -2,11 +2,10 @@
 
 Application Django mobile-first pour les employés SODECI : trouver un prestataire agréé près de chez soi.
 
-## Parcours (3 écrans)
+## Parcours
 
 1. **Connexion**
-2. **Où êtes-vous ?** — recherche de quartier/zone + géoloc
-3. **Résultats** — carte plein écran + panneau (bottom sheet / colonne) avec filtres de type de soin
+2. **Résultats** — carte plein écran + panneau avec filtres, géolocalisation, distances voiture et itinéraires
 
 ## Installation
 
@@ -20,6 +19,7 @@ copy .env.example .env
 
 python manage.py migrate
 python manage.py import_prestataires --clear
+python manage.py refine_gps
 python manage.py createsuperuser
 python manage.py runserver
 ```
@@ -39,6 +39,7 @@ Ouvrir http://127.0.0.1:8000/
 python manage.py import_prestataires
 python manage.py import_prestataires --clear
 python manage.py import_prestataires chemin/fichier.xlsx
+python manage.py refine_gps
 python manage.py geocode_prestataires
 python manage.py geocode_prestataires --nominatim --limit 50
 ```
@@ -58,9 +59,3 @@ DJANGO_SECRET_KEY=...
 DJANGO_DEBUG=False
 DJANGO_ALLOWED_HOSTS=votre-domaine.ci
 ```
-
-## Points à valider avec vous
-
-1. **Format du fichier source** — actuellement Excel `RESEAU DE SOIN 2025.xlsx` (colonnes N°ordre, Direction, Secteur, Communes, Nature, Prestataire, Adresse, Téléphone, E-mail).
-2. **Liste officielle des zones** — aujourd’hui la « zone » = secteur (quartier) si présent, sinon commune. Faut-il plutôt une liste figée des directions régionales ?
-3. **Mentions légales / RGPD** — texte à afficher (usage interne SODECI, responsabilité des coordonnées, etc.).
