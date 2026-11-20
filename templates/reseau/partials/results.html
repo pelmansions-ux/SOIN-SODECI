@@ -1,0 +1,43 @@
+<p class="results-meta">{{ count }} résultat{{ count|pluralize }}{% if page_obj.paginator.num_pages > 1 %} · page {{ page_obj.number }}/{{ page_obj.paginator.num_pages }}{% endif %}</p>
+
+<div class="grid-results">
+  {% for p in prestataires %}
+  <article class="result-card reveal" style="--i: {{ forloop.counter0 }}">
+    <div class="result-top">
+      <span class="badge">{{ p.nature }}</span>
+      <a class="result-name" href="{% url 'detail' p.pk %}">{{ p.nom }}</a>
+    </div>
+    <p class="muted">{{ p.commune }}{% if p.secteur %} · {{ p.secteur }}{% endif %}</p>
+    {% if p.adresse %}<p class="addr">{{ p.adresse }}</p>{% endif %}
+    <div class="result-actions">
+      {% if p.telephone %}
+      <a class="chip" href="tel:{{ p.telephone|cut:' '|cut:'/' }}">{{ p.telephone }}</a>
+      {% endif %}
+      {% if p.email %}
+      <a class="chip" href="mailto:{{ p.email }}">E-mail</a>
+      {% endif %}
+      <a class="chip accent" href="{% url 'carte' %}?id={{ p.id }}{% if direction %}&direction={{ direction|urlencode }}{% endif %}">Carte</a>
+      <a class="chip" href="{% url 'detail' p.pk %}">Fiche</a>
+    </div>
+  </article>
+  {% empty %}
+  <p class="empty">Aucun prestataire ne correspond à ces critères.</p>
+  {% endfor %}
+</div>
+
+{% if page_obj.paginator.num_pages > 1 %}
+<nav class="pagination" aria-label="Pagination">
+  {% if page_obj.has_previous %}
+  <a class="chip"
+     hx-get="{% url 'liste' %}?{% if direction %}direction={{ direction|urlencode }}&{% endif %}{% if commune %}commune={{ commune|urlencode }}&{% endif %}{% if current_nature %}nature={{ current_nature|urlencode }}&{% endif %}{% if current_secteur %}secteur={{ current_secteur|urlencode }}&{% endif %}{% if q %}q={{ q|urlencode }}&{% endif %}page={{ page_obj.previous_page_number }}"
+     hx-target="#results"
+     hx-swap="innerHTML">← Précédent</a>
+  {% endif %}
+  {% if page_obj.has_next %}
+  <a class="chip accent"
+     hx-get="{% url 'liste' %}?{% if direction %}direction={{ direction|urlencode }}&{% endif %}{% if commune %}commune={{ commune|urlencode }}&{% endif %}{% if current_nature %}nature={{ current_nature|urlencode }}&{% endif %}{% if current_secteur %}secteur={{ current_secteur|urlencode }}&{% endif %}{% if q %}q={{ q|urlencode }}&{% endif %}page={{ page_obj.next_page_number }}"
+     hx-target="#results"
+     hx-swap="innerHTML">Suivant →</a>
+  {% endif %}
+</nav>
+{% endif %}

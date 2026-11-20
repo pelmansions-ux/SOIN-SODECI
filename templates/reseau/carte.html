@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Carte — Réseau de Soin SODECI{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
+{% endblock %}
+
+{% block main_class %}page page-map{% endblock %}
+
+{% block content %}
+<aside class="map-sidebar reveal">
+  <div class="section-head compact">
+    <h1>Carte du réseau</h1>
+    <p><span id="map-count">{{ count }}</span> prestataire(s) géolocalisé(s)</p>
+  </div>
+
+  <button type="button" id="btn-near" class="btn-primary full" data-api="{% url 'api_proche' %}">
+    Prestataire près de moi
+  </button>
+  <p id="geo-status" class="muted small" role="status"></p>
+
+  <form id="map-filters" class="map-filters">
+    <label>
+      Direction
+      <select name="direction" id="filter-direction">
+        <option value="">Toutes</option>
+        {% for d in directions %}
+        <option value="{{ d }}" {% if d == current_direction %}selected{% endif %}>{{ d|cut:"DIRECTION REGIONALE " }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      Nature
+      <select name="nature" id="filter-nature">
+        <option value="">Toutes</option>
+        {% for n in natures %}
+        <option value="{{ n }}" {% if n == current_nature %}selected{% endif %}>{{ n }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      Recherche
+      <input type="search" name="q" id="filter-q" value="{{ q }}" placeholder="Nom, commune…">
+    </label>
+  </form>
+
+  <div id="near-list" class="near-list" hidden></div>
+</aside>
+
+<div class="map-stage reveal delay-1">
+  <div id="map"
+       data-focus="{{ focus_id }}"
+       data-markers-url="{% url 'api_markers' %}"></div>
+</div>
+{{ markers|json_script:"markers-data" }}
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script src="{% static 'js/carte.js' %}"></script>
+{% endblock %}

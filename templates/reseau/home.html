@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block title %}Directions — Réseau de Soin SODECI{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <p class="eyebrow reveal">Annuaire officiel</p>
+  <h1 class="reveal delay-1">Réseau de Soin SODECI</h1>
+  <p class="lede reveal delay-2">Choisissez votre direction régionale pour afficher les communes et prestataires agréés.</p>
+  <div class="hero-actions reveal delay-3">
+    <a class="btn-primary" href="{% url 'carte' %}">Voir la carte</a>
+    <a class="btn-secondary" href="{% url 'carte' %}#pres-de-moi">Prestataire près de moi</a>
+  </div>
+</section>
+
+<section class="stats-row reveal delay-2" aria-label="Statistiques">
+  <div><strong>{{ stats.prestataires }}</strong><span>prestataires</span></div>
+  <div><strong>{{ stats.directions }}</strong><span>directions</span></div>
+  <div><strong>{{ stats.communes }}</strong><span>communes</span></div>
+  <div><strong>{{ stats.natures }}</strong><span>types de soins</span></div>
+</section>
+
+<section class="section">
+  <div class="section-head">
+    <h2>Directions régionales</h2>
+    <p>Parcourez d’abord par zone, puis affinez par commune.</p>
+  </div>
+  <div class="grid-directions">
+    {% for d in directions %}
+    <a class="dir-card reveal" style="--i: {{ forloop.counter0 }}" href="{% url 'direction' d.direction %}">
+      <span class="dir-label">Direction</span>
+      <strong>{{ d.direction|cut:"DIRECTION REGIONALE "|title }}</strong>
+      <span class="dir-count">{{ d.total }} prestataire{{ d.total|pluralize }}</span>
+    </a>
+    {% empty %}
+    <p class="empty">Aucun prestataire importé. Lancez <code>python manage.py import_reseau</code>.</p>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

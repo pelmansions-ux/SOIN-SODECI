@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Votre quartier — SODECI{% endblock %}
+{% block body_class %}screen-zone{% endblock %}
+
+{% block body %}
+<header class="app-top">
+  <div class="app-brand">
+    <img src="{% static 'img/goutte.svg' %}" width="28" height="28" alt="">
+    <span>Réseau de Soin</span>
+  </div>
+  <form method="post" action="{% url 'logout' %}">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-ghost">Déconnexion</button>
+  </form>
+</header>
+
+<main class="zone-screen">
+  <section class="zone-hero reveal">
+    <p class="eyebrow">Étape unique</p>
+    <h1>Où êtes-vous&nbsp;?</h1>
+    <p class="lede">Tapez votre quartier, commune ou ville. Ou utilisez votre position.</p>
+  </section>
+
+  <div class="zone-search reveal delay-1">
+    <label class="sr-only" for="zone-input">Rechercher un quartier</label>
+    <input id="zone-input" type="search" placeholder="Ex. Yopougon, Cocody, Bouaké…"
+           autocomplete="off" aria-controls="zone-list" aria-autocomplete="list">
+    <button type="button" id="btn-geo-zone" class="btn btn-secondary btn-block">
+      📍 Utiliser ma position
+    </button>
+    <p id="zone-status" class="status" role="status" aria-live="polite"></p>
+  </div>
+
+  <ul id="zone-list" class="zone-list reveal delay-2" role="listbox" aria-label="Zones disponibles">
+    {% for z in zones %}
+    <li>
+      <button type="button" class="zone-row" data-zone="{{ z.zone }}" role="option">
+        <span class="zone-name">{{ z.zone }}</span>
+        <span class="zone-count">{{ z.total }}</span>
+      </button>
+    </li>
+    {% endfor %}
+  </ul>
+  <p id="zone-empty" class="empty" hidden>Quartier introuvable. Essayez le nom de la commune ou de la ville.</p>
+</main>
+
+{{ zones_json|json_script:"zones-data" }}
+<script src="{% static 'js/zone.js' %}"></script>
+{% endblock %}

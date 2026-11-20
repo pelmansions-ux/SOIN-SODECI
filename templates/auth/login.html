@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Connexion — Réseau de Soin SODECI{% endblock %}
+{% block body_class %}screen-login{% endblock %}
+
+{% block body %}
+<main class="login-screen">
+  <div class="login-brand reveal">
+    <img class="logo-goutte" src="{% static 'img/goutte.svg' %}" width="72" height="72" alt="SODECI">
+    <p class="brand-name">SODECI</p>
+    <h1>Réseau de Soin</h1>
+    <p class="login-msg">La carte et les prestataires proches s’affichent aussitôt après connexion.</p>
+  </div>
+
+  <form method="post" class="login-card reveal delay-1" novalidate>
+    {% csrf_token %}
+    <h2>Connexion employé</h2>
+    {% if form.non_field_errors %}
+      <p class="form-error" role="alert">{{ form.non_field_errors|striptags }}</p>
+    {% elif form.errors %}
+      <p class="form-error" role="alert">Identifiant ou mot de passe incorrect. Réessayez ou contactez votre RH.</p>
+    {% endif %}
+    <label for="id_username">Identifiant</label>
+    <input id="id_username" type="text" name="username" autocomplete="username" required autofocus placeholder="votre.identifiant">
+
+    <label for="id_password">Mot de passe</label>
+    <input id="id_password" type="password" name="password" autocomplete="current-password" required placeholder="••••••••">
+
+    <button type="submit" class="btn btn-primary btn-block">Se connecter</button>
+  </form>
+</main>
+{% endblock %}

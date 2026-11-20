@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Trouver un soin — SODECI{% endblock %}
+{% block main_class %}page page-explorer{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+{% endblock %}
+
+{% block content %}
+<section id="wizard" class="wizard">
+  <div class="wizard-intro reveal">
+    <p class="eyebrow">Bienvenue</p>
+    <h1>Que recherchez-vous&nbsp;?</h1>
+    <p class="lede">Deux questions, puis la carte et la liste s’affichent ensemble — avec ce qui est près de vous.</p>
+    <div class="steps" aria-hidden="true">
+      <span class="step-dot active" id="dot-1"></span>
+      <span class="step-dot" id="dot-2"></span>
+    </div>
+  </div>
+
+  <div id="step-zone" class="wizard-step reveal delay-1">
+    <h2>1. Votre zone</h2>
+    <p class="muted">Choisissez votre direction régionale</p>
+    <div class="choice-grid">
+      {% for d in directions %}
+      <button type="button" class="choice-card"
+              data-direction="{{ d.direction }}"
+              data-label="{{ d.short }}">
+        <strong>{{ d.short }}</strong>
+        <span>{{ d.total }} prestataire{{ d.total|pluralize }}</span>
+      </button>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div id="step-type" class="wizard-step" hidden>
+    <button type="button" class="link-back" id="back-to-zone">← Changer de zone</button>
+    <h2>2. Type de soin</h2>
+    <p class="muted" id="zone-chosen-label"></p>
+    <div class="choice-grid types">
+      {% for t in soin_types %}
+      <button type="button" class="choice-card type"
+              data-type="{{ t.id }}"
+              data-label="{{ t.label }}">
+        <strong>{{ t.label }}</strong>
+        <span>{{ t.hint }}</span>
+      </button>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section id="explorer" class="explorer" hidden
+         data-api="{% url 'api_search' %}">
+  <div class="explorer-toolbar reveal">
+    <div>
+      <p class="eyebrow">Résultats</p>
+      <h1 id="explorer-title">Vos prestataires</h1>
+      <p class="muted" id="explorer-meta">—</p>
+    </div>
+    <div class="toolbar-actions">
+      <input type="search" id="live-q" placeholder="Filtrer un nom, une commune…">
+      <button type="button" class="btn-secondary" id="btn-near">Près de moi</button>
+      <button type="button" class="btn-ghost" id="btn-change">Modifier</button>
+    </div>
+  </div>
+
+  <p id="geo-status" class="geo-status" role="status"></p>
+
+  <div class="explorer-layout">
+    <div class="map-panel reveal">
+      <div id="map" aria-label="Carte des prestataires"></div>
+    </div>
+    <div class="list-panel reveal delay-1">
+      <div id="results-list" class="results-list"></div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="{% static 'js/explorer.js' %}"></script>
+{% endblock %}

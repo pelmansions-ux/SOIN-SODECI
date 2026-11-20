@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+
+{% block title %}Prestataires — Réseau de Soin{% endblock %}
+
+{% block content %}
+<nav class="breadcrumb reveal">
+  <a href="{% url 'home' %}">Directions</a>
+  {% if direction %}
+  <span>/</span>
+  <a href="{% url 'direction' direction %}">{{ direction|cut:"DIRECTION REGIONALE " }}</a>
+  {% endif %}
+  {% if commune %}
+  <span>/</span>
+  <span>{{ commune }}</span>
+  {% endif %}
+</nav>
+
+<section class="section-head reveal">
+  <h1>{% if commune %}{{ commune }}{% elif direction %}{{ direction|cut:"DIRECTION REGIONALE "|title }}{% else %}Tous les prestataires{% endif %}</h1>
+  <p>Affinez par nature, secteur ou mot-clé.</p>
+</section>
+
+<form class="filters reveal"
+      hx-get="{% url 'liste' %}"
+      hx-target="#results"
+      hx-swap="innerHTML"
+      hx-trigger="change, keyup changed delay:300ms from:#q"
+      hx-push-url="true"
+      hx-indicator="#loading">
+  {% if direction %}<input type="hidden" name="direction" value="{{ direction }}">{% endif %}
+  {% if commune %}<input type="hidden" name="commune" value="{{ commune }}">{% endif %}
+
+  <label class="grow">
+    Recherche
+    <input id="q" type="search" name="q" value="{{ q }}" placeholder="Nom, adresse, téléphone…">
+  </label>
+
+  <label>
+    Nature
+    <select name="nature">
+      <option value="">Toutes</option>
+      {% for n in natures %}
+      <option value="{{ n }}" {% if n == current_nature %}selected{% endif %}>{{ n }}</option>
+      {% endfor %}
+    </select>
+  </label>
+
+  {% if secteurs %}
+  <label>
+    Secteur
+    <select name="secteur">
+      <option value="">Tous</option>
+      {% for s in secteurs %}
+      <option value="{{ s }}" {% if s == current_secteur %}selected{% endif %}>{{ s }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  {% endif %}
+</form>
+
+<p id="loading" class="htmx-indicator loading-line">Mise à jour…</p>
+
+<div id="results">
+  {% include 'reseau/partials/results.html' %}
+</div>
+{% endblock %}

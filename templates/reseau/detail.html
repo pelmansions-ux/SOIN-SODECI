@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ prestataire.nom }} — Réseau de Soin{% endblock %}
+
+{% block extra_head %}
+{% if prestataire.has_coords %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<nav class="breadcrumb reveal">
+  <a href="{% url 'home' %}">Retour</a>
+  <span>/</span>
+  <span>{{ prestataire.nom }}</span>
+</nav>
+
+<article class="detail-layout">
+  <div class="detail-copy reveal">
+    <span class="badge">{{ prestataire.nature }}</span>
+    <h1>{{ prestataire.nom }}</h1>
+    <dl class="detail-list">
+      <div><dt>Direction</dt><dd>{{ prestataire.direction }}</dd></div>
+      <div><dt>Commune</dt><dd>{{ prestataire.commune }}</dd></div>
+      {% if prestataire.secteur %}<div><dt>Secteur</dt><dd>{{ prestataire.secteur }}</dd></div>{% endif %}
+      {% if prestataire.adresse %}<div><dt>Adresse</dt><dd>{{ prestataire.adresse }}</dd></div>{% endif %}
+      {% if prestataire.telephone %}<div><dt>Téléphone</dt><dd><a href="tel:{{ prestataire.telephone|cut:' '|cut:'/' }}">{{ prestataire.telephone }}</a></dd></div>{% endif %}
+      {% if prestataire.email %}<div><dt>E-mail</dt><dd><a href="mailto:{{ prestataire.email }}">{{ prestataire.email }}</a></dd></div>{% endif %}
+    </dl>
+    <div class="hero-actions">
+      <a class="btn-primary" href="{{ prestataire.maps_url }}" target="_blank" rel="noopener">Itinéraire</a>
+      <a class="btn-secondary" href="{% url 'home' %}">Nouvelle recherche</a>
+      {% if prestataire.telephone %}
+      <a class="btn-ghost" href="tel:{{ prestataire.telephone|cut:' '|cut:'/' }}">Appeler</a>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if prestataire.has_coords %}
+  <div class="detail-map reveal delay-1">
+    <div id="mini-map" data-lat="{{ prestataire.latitude }}" data-lng="{{ prestataire.longitude }}" data-name="{{ prestataire.nom }}"></div>
+  </div>
+  {% endif %}
+</article>
+{% endblock %}
+
+{% block extra_js %}
+{% if prestataire.has_coords %}
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="{% static 'js/detail-map.js' %}"></script>
+{% endif %}
+{% endblock %}

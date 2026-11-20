@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ direction }} — Réseau de Soin{% endblock %}
+
+{% block content %}
+<nav class="breadcrumb reveal">
+  <a href="{% url 'home' %}">Directions</a>
+  <span>/</span>
+  <span>{{ direction|cut:"DIRECTION REGIONALE " }}</span>
+</nav>
+
+<section class="section-head reveal">
+  <h1>{{ direction|title }}</h1>
+  <p>{{ total }} prestataire{{ total|pluralize }} · choisissez une commune</p>
+  <div class="hero-actions">
+    <a class="btn-secondary" href="{% url 'liste' %}?direction={{ direction|urlencode }}">Voir toute la direction</a>
+    <a class="btn-ghost" href="{% url 'carte' %}?direction={{ direction|urlencode }}">Carte de la direction</a>
+  </div>
+</section>
+
+<div class="grid-communes">
+  {% for c in communes %}
+  <a class="commune-card reveal" style="--i: {{ forloop.counter0 }}"
+     href="{% url 'liste' %}?direction={{ direction|urlencode }}&commune={{ c.commune|urlencode }}">
+    <strong>{{ c.commune }}</strong>
+    <span>{{ c.total }} prestataire{{ c.total|pluralize }}</span>
+  </a>
+  {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Réseau de Soin SODECI{% endblock %}
+{% block body_class %}screen-results{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+<meta name="apple-mobile-web-app-capable" content="yes">
+{% endblock %}
+
+{% block body %}
+<header class="results-top">
+  <div class="brand-pill">
+    <img src="{% static 'img/goutte.svg' %}" width="20" height="20" alt="">
+    <span>SODECI</span>
+  </div>
+  <form method="post" action="{% url 'logout' %}">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-chip">Sortir</button>
+  </form>
+</header>
+
+<div id="map" class="results-map" aria-label="Carte des prestataires"></div>
+
+<aside id="sheet" class="sheet" data-height="mid"
+       data-api="{% url 'api_prestataires' %}"
+       data-route-api="{% url 'api_itineraire' %}">
+  <div class="sheet-handle" id="sheet-handle" role="button" tabindex="0" aria-label="Agrandir le panneau">
+    <span></span>
+  </div>
+
+  <div id="browse-panel">
+    <div class="sheet-head">
+      <div class="sheet-titles">
+        <h1 id="sheet-title">À proximité</h1>
+        <p id="sheet-status" class="status" role="status" aria-live="polite">Localisation…</p>
+      </div>
+    </div>
+
+    <div class="type-scroller" role="tablist" aria-label="Type de soin">
+      {% for c in chips %}
+      <button type="button" class="type-chip{% if c.id == 'tous' %} active{% endif %}"
+              role="tab" aria-selected="{% if c.id == 'tous' %}true{% else %}false{% endif %}"
+              data-type="{{ c.id }}" data-label="{{ c.label }}">
+        <span class="chip-icon">{{ c.icon }}</span>
+        <span class="chip-label">{{ c.label }}</span>
+        <span class="chip-count" data-count-for="{{ c.id }}">{{ c.count }}</span>
+      </button>
+      {% endfor %}
+    </div>
+
+    <div class="sheet-search">
+      <label class="sr-only" for="zone-filter">Zone</label>
+      <input id="zone-filter" type="search" placeholder="Filtrer une zone (optionnel)" autocomplete="off">
+      <button type="button" id="btn-clear-zone" class="btn btn-ghost btn-clear" hidden>✕</button>
+    </div>
+    <div id="zone-suggest" class="zone-suggest" hidden></div>
+  </div>
+
+  <div id="selected-panel" class="selected-panel" hidden>
+    <button type="button" id="btn-back-list" class="btn-back">← Retour à la liste</button>
+    <div class="selected-head">
+      <h2 id="selected-name">—</h2>
+      <p id="selected-distance" class="selected-distance" role="status" aria-live="polite">Calcul de la distance…</p>
+      <p id="selected-meta" class="muted"></p>
+    </div>
+    <div class="travel-modes" role="tablist" aria-label="Mode de déplacement">
+      <button type="button" class="travel-chip active" data-mode="car" id="mode-car">
+        <span class="travel-ico">🚗</span>
+        <span class="travel-copy">
+          <strong id="car-label">—</strong>
+          <small>Voiture</small>
+        </span>
+      </button>
+      <button type="button" class="travel-chip" data-mode="foot" id="mode-foot">
+        <span class="travel-ico">🚶</span>
+        <span class="travel-copy">
+          <strong id="foot-label">—</strong>
+          <small>À pied</small>
+        </span>
+      </button>
+    </div>
+    <div class="selected-actions" id="selected-actions"></div>
+  </div>
+
+  <div id="results-list" class="results-list"></div>
+</aside>
+
+<div id="fiche" class="fiche" hidden>
+  <div class="fiche-backdrop" id="fiche-backdrop"></div>
+  <div class="fiche-panel" role="dialog" aria-modal="true" aria-labelledby="fiche-nom">
+    <button type="button" class="fiche-close" id="fiche-close" aria-label="Fermer">×</button>
+    <div id="fiche-body"></div>
+    <div id="fiche-mini-map"></div>
+  </div>
+</div>
+
+{{ zones_json|json_script:"zones-data" }}
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="{% static 'js/results.js' %}?v=12"></script>
+{% endblock %}
