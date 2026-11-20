@@ -1,27 +1,22 @@
 from collections import defaultdict
 
 from django.core.management.base import BaseCommand
-from django.db.models import Count
 
 from reseau.landmarks import refine_coords
 from reseau.models import Prestataire
 
 
 class Command(BaseCommand):
-    help = 'Affine les GPS pour que chaque prestataire ait une position distincte.'
+    help = 'Affine les GPS (landmarks précis + positions distinctes).'
+
+    def add_arguments(self, parser):
+        parser.add_argument(
+            '--all',
+            action='store_true',
+            help='Recalculer tous les GPS (recommandé après maj landmarks).',
+        )
 
     def handle(self, *args, **options):
-        # Groupes de coords identiques
-        shared_keys = {
-            (round(row['latitude'], 5), round(row['longitude'], 5))
-            for row in (
-                Prestataire.objects.filter(actif=True)
-                .exclude(latitude__isnull=True)
-                .exclude(longitude__isnull=True)
-                .values('latitude', 'longitude')
-            )
-        }
-        # Recount properly
         buckets = defaultdict(list)
         for p in Prestataire.objects.filter(actif=True).exclude(latitude__isnull=True):
             buckets[(round(p.latitude, 5), round(p.longitude, 5))].append(p.id)
@@ -34,7 +29,7 @@ class Command(BaseCommand):
                 if p.latitude is not None
                 else None
             )
-            must = key in crowded or p.latitude is None
+            must = options['all'] or key in crowded or p.latitude is None
             refined = refine_coords(
                 zone=p.zone,
                 secteur=p.secteur,
@@ -46,17 +41,21 @@ class Command(BaseCommand):
             )
             if not refined:
                 continue
-            # Toujours réécrire les points en cluster, sinon seulement si landmark plus précis
-            if must or abs(refined[0] - (p.latitude or 0)) > 1e-5:
+            if must or abs(refined[0] - (p.latitude or 0)) > 1e-5 or abs(
+                refined[1] - (p.longitude or 0)
+            ) > 1e-5:
                 p.latitude, p.longitude = refined
                 p.save(update_fields=['latitude', 'longitude'])
                 updated += 1
 
-        # Vérification Cocody
-        cocody = Prestataire.objects.filter(zone__icontains='Cocody').exclude(latitude__isnull=True)
-        uniq = cocody.values('latitude', 'longitude').distinct().count()
-        self.stdout.write(
-            self.style.SUCCESS(
-                f'GPS affinés: {updated} | Cocody unique: {uniq}/{cocody.count()}'
+        # Contrôle Palm Club
+        palm = (5.3335, -3.9865)
+        from reseau.geo import haversine_km
+
+        self.stdout.write(self.style.SUCCESS(f'GPS affinés: {updated}'))
+        for p in Prestataire.objects.filter(nom__icontains='palm club'):
+            d = haversine_km(palm[0], palm[1], p.latitude, p.longitude)
+            self.stdout.write(
+                f'  {p.nom[:45]} -> {p.latitude:.5f},{p.longitude:.5f} '
+                f'(~{d*1000:.0f} m de Hotel Palm Club)'
             )
-        )

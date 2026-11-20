@@ -1,20 +1,25 @@
-"""Repères GPS Abidjan / CI pour distances distinctes et réalistes."""
+"""Repères GPS Abidjan / CI — prioriser les adresses précises (ex. Palm Club)."""
 
 from __future__ import annotations
 
 import hashlib
 import re
 
-# Ordre = priorité (plus précis en premier)
+# Ordre = priorité (plus précis en premier). Coords proches Google Maps.
 LANDMARKS: list[tuple[str, float, float]] = [
-    # Cocody précis
-    (r'CHU\s*(DE\s*)?COCODY|CHU\s*COCODY', 5.3465, -3.9868),
+    # --- Cocody très précis ---
+    (r'PALM\s*CLUB|HOTEL\s*PALM', 5.3335, -3.9865),
+    (r'LYC[EÉ]E\s*TECHNIQUE', 5.3398, -3.9912),
+    (r'B(OULE)?V(AR)?D\.?\s*DES\s*MARTYRS|BD\s*DES\s*MARTYRS', 5.3480, -3.9945),
+    (r'CHU\s*(DE\s*)?COCODY|CHU\s*COCODY|INFES', 5.3465, -3.9868),
     (r'FAYA|G[EÉ]NIE\s*2000', 5.3920, -3.9580),
-    (r'CORNICHE', 5.3385, -3.9750),
-    (r'DEUX\s*PLATEAUX|2\s*PLATEAUX|2PLATEAUX', 5.3540, -3.9890),
+    (r'CORNICHE|STE\s*ANNE|SAINTE\s*ANNE\s*MARIE|PISAM', 5.3285, -3.9805),
+    (r'SOCOCE', 5.3545, -3.9860),
+    (r'ABIDJAN\s*MALL|BONOUMIN', 5.3520, -3.9780),
+    (r'DEUX\s*PLATEAUX|2\s*PLATEAUX|2PLATEAUX|II\s*PLATEAUX|IIPLATEAUX', 5.3540, -3.9890),
     (r'RIVIERA\s*3|RIVIERA\s*III', 5.3555, -3.9480),
     (r'RIVIERA\s*2|RIVIERA\s*II|ALPHA\s*BLONDY', 5.3480, -3.9600),
-    (r'RIVIERA\s*PALMERAIE|PALMERAIE', 5.3800, -3.9600),
+    (r'RIVIERA\s*PALMERAIE|PALMERAIE|PALMERAIRE', 5.3800, -3.9600),
     (r'RIVIERA\s*1|RIVIERA\s*I\b', 5.3450, -3.9700),
     (r'RIVIERA', 5.3500, -3.9650),
     (r'ANGRE|ANGR[EÉ]', 5.3980, -3.9800),
@@ -25,9 +30,12 @@ LANDMARKS: list[tuple[str, float, float]] = [
     (r'ST\s*JEAN|SAINT\s*JEAN', 5.3580, -3.9820),
     (r'VAL\s*DODO', 5.3650, -3.9700),
     (r'ATTOBAN', 5.3750, -3.9400),
+    (r'DANGA', 5.3580, -3.9950),
     (r'DANGUI|DANGUIRA', 5.3680, -3.9550),
     (r'SID[EÉ]CI', 5.3500, -3.9800),
-    (r'II\s*PLATEAUX|IIPLATEAUX', 5.3540, -3.9890),
+    (r'RTI', 5.3550, -3.9980),
+    (r'ENA\b|ECOLE\s*NATIONALE\s*D.?ADMINISTRATION', 5.3410, -3.9880),
+    (r'ZOO', 5.3450, -3.9950),
     # Autres Abidjan
     (r'ZONE\s*4', 5.2950, -3.9950),
     (r'TREICHVILLE', 5.2900, -4.0050),
@@ -48,7 +56,6 @@ LANDMARKS: list[tuple[str, float, float]] = [
     (r'KOUMASSI', 5.2900, -3.9600),
 ]
 
-# Centre commune si aucun landmark — sert de base au spread
 COMMUNE_FALLBACK: dict[str, tuple[float, float]] = {
     'COCODY': (5.3600, -3.9880),
     'YOPOUGON': (5.3364, -4.0847),
@@ -63,8 +70,7 @@ COMMUNE_FALLBACK: dict[str, tuple[float, float]] = {
 }
 
 
-def _hash_offset(seed: str, scale: float = 0.00055) -> tuple[float, float]:
-    """Offset ~50–600 m pour différencier deux points proches."""
+def _hash_offset(seed: str, scale: float) -> tuple[float, float]:
     h = int(hashlib.md5(seed.encode('utf-8')).hexdigest()[:8], 16)
     dlat = ((h % 41) - 20) * scale
     dlng = (((h // 41) % 41) - 20) * scale
@@ -82,9 +88,11 @@ def refine_coords(
 ):
     text = f'{adresse} {secteur} {zone} {commune} {nom}'.upper()
     base = None
+    precise = False
     for pat, lat, lng in LANDMARKS:
         if re.search(pat, text, re.I):
             base = (lat, lng)
+            precise = True
             break
 
     if base is None:
@@ -98,9 +106,10 @@ def refine_coords(
     if base is None:
         return None
 
-    # Toujours un offset unique (sinon plusieurs cabinets = même km)
-    dlat, dlng = _hash_offset(f'{nom}|{adresse}|{zone}')
-    if force_unique:
-        dlat *= 1.35
-        dlng *= 1.35
+    # Landmark précis : petit écart (~15–80 m) pour rester fidèle à Google
+    # Commune seule : écart plus large pour différencier les fiches
+    scale = 0.00009 if precise else 0.00055
+    if force_unique and not precise:
+        scale *= 1.35
+    dlat, dlng = _hash_offset(f'{nom}|{adresse}|{zone}', scale)
     return base[0] + dlat, base[1] + dlng

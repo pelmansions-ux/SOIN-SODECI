@@ -5,5 +5,5 @@ pip install -r requirements.txt
 python manage.py collectstatic --noinput
 python manage.py migrate --noinput
 python manage.py import_prestataires --clear
-python manage.py refine_gps
+python manage.py refine_gps --all
 python manage.py ensure_demo_users
