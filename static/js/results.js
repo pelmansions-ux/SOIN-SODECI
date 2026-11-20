@@ -21,6 +21,11 @@
   const selectedActions = document.getElementById('selected-actions');
   const carLabel = document.getElementById('car-label');
   const footLabel = document.getElementById('foot-label');
+  const btnLocate = document.getElementById('btn-locate');
+  const geoPrompt = document.getElementById('geo-prompt');
+  const geoPromptAllow = document.getElementById('geo-prompt-allow');
+  const geoPromptLater = document.getElementById('geo-prompt-later');
+  const geoPromptText = document.getElementById('geo-prompt-text');
   const fiche = document.getElementById('fiche');
   const ficheBody = document.getElementById('fiche-body');
   const ficheMini = document.getElementById('fiche-mini-map');
@@ -741,30 +746,156 @@
       });
   }
 
-  function locate() {
-    if (!navigator.geolocation) {
-      setStatus('Géolocalisation indisponible.');
+  function showGeoPrompt(message) {
+    if (!geoPrompt) return;
+    if (geoPromptText && message) geoPromptText.textContent = message;
+    geoPrompt.hidden = false;
+  }
+
+  function hideGeoPrompt() {
+    if (geoPrompt) geoPrompt.hidden = true;
+  }
+
+  function setLocateBtn(state) {
+    if (!btnLocate) return;
+    btnLocate.classList.toggle('is-active', state === 'on');
+    btnLocate.classList.toggle('is-pending', state === 'pending');
+  }
+
+  function geoErrorMessage(err) {
+    var code = err && err.code;
+    if (code === 1) {
+      return 'Localisation refusée. Sur iPhone : Réglages → Safari → Localisation → Autoriser, puis touchez « Activer ma position ».';
+    }
+    if (code === 2) {
+      return 'Position indisponible. Activez le GPS / le service de localisation du téléphone, puis réessayez.';
+    }
+    if (code === 3) {
+      return 'Délai dépassé. Vérifiez que la localisation est activée, puis réessayez.';
+    }
+    return 'Impossible d’obtenir votre position. Touchez « Activer ma position » pour réessayer.';
+  }
+
+  function locate(opts) {
+    opts = opts || {};
+    var fromUser = !!opts.fromUser;
+
+    if (!window.isSecureContext) {
+      setStatus('La localisation nécessite HTTPS.');
+      showGeoPrompt('Ouvrez le site en HTTPS pour activer la localisation.');
       load();
       return;
     }
+    if (!navigator.geolocation) {
+      setStatus('Géolocalisation indisponible sur cet appareil.');
+      showGeoPrompt('Cet appareil ne propose pas la géolocalisation.');
+      load();
+      return;
+    }
+
+    hideGeoPrompt();
     setStatus('Recherche de votre position…');
+    setLocateBtn('pending');
     followUser = true;
+
     navigator.geolocation.getCurrentPosition(
       function (pos) {
+        hideGeoPrompt();
+        setLocateBtn('on');
         onUserMoved(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy);
-        currentZone = '';
-        if (zoneFilter) zoneFilter.value = '';
-        if (zoneSuggest) zoneSuggest.hidden = true;
+        if (!opts.keepZone) {
+          currentZone = '';
+          if (zoneFilter) zoneFilter.value = '';
+          if (zoneSuggest) zoneSuggest.hidden = true;
+        }
         lastReloadAt = Date.now();
         load();
         startWatch();
       },
-      function () {
-        setStatus('Position non partagée. Autorisez la localisation.');
-        load();
+      function (err) {
+        setLocateBtn('off');
+        var msg = geoErrorMessage(err);
+        setStatus(msg);
+        // Toujours proposer d’activer (surtout après refus ou GPS off)
+        showGeoPrompt(msg);
+        if (userLat == null) load();
+        else load();
       },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 5000 }
+      {
+        enableHighAccuracy: true,
+        timeout: fromUser ? 25000 : 12000,
+        maximumAge: fromUser ? 0 : 8000,
+      }
     );
+  }
+
+  function restoreCachedPosition() {
+    try {
+      var la = parseFloat(sessionStorage.getItem('sodeci_lat'));
+      var ln = parseFloat(sessionStorage.getItem('sodeci_lng'));
+      if (!isNaN(la) && !isNaN(ln)) {
+        userLat = la;
+        userLng = ln;
+        setUserMarker();
+        setLocateBtn('on');
+        return true;
+      }
+    } catch (e) {}
+    return false;
+  }
+
+  function bootLocation() {
+    var hasCache = restoreCachedPosition();
+    if (hasCache) {
+      setStatus('Mise à jour de votre position…');
+      load();
+    }
+    // Demande auto au chargement (Safari affiche la pop-up système)
+    if (navigator.permissions && navigator.permissions.query) {
+      navigator.permissions
+        .query({ name: 'geolocation' })
+        .then(function (status) {
+          if (status.state === 'denied') {
+            setLocateBtn('off');
+            showGeoPrompt(
+              'Localisation bloquée. Autorisez-la pour ce site, puis touchez « Activer ma position ».'
+            );
+            if (!hasCache) load();
+            return;
+          }
+          // prompt ou granted → tenter automatiquement
+          locate({ keepZone: true, fromUser: false });
+          status.onchange = function () {
+            if (status.state === 'granted') locate({ keepZone: true, fromUser: true });
+            if (status.state === 'denied') {
+              setLocateBtn('off');
+              showGeoPrompt(
+                'Localisation bloquée. Autorisez-la pour ce site, puis touchez « Activer ma position ».'
+              );
+            }
+          };
+        })
+        .catch(function () {
+          locate({ keepZone: true, fromUser: false });
+        });
+    } else {
+      // iOS Safari ancien : pas d’API permissions → demande directe
+      locate({ keepZone: true, fromUser: false });
+    }
+  }
+
+  if (btnLocate) {
+    btnLocate.addEventListener('click', function () {
+      locate({ fromUser: true, keepZone: false });
+    });
+  }
+  if (geoPromptAllow) {
+    geoPromptAllow.addEventListener('click', function () {
+      locate({ fromUser: true, keepZone: false });
+    });
+  }
+  if (geoPromptLater) {
+    geoPromptLater.addEventListener('click', hideGeoPrompt);
   }
 
   document.querySelectorAll('.type-chip').forEach(function (chip) {
@@ -876,5 +1007,5 @@
     });
   }
   updateTitle();
-  locate();
+  bootLocation();
 })();

@@ -890,6 +890,82 @@ body.is-selecting .sheet[data-height="full"] { height: 72vh; }
   background: #d7e8ef;
 }
 
+/* Bouton + demande localisation mobile */
+.btn-locate {
+  position: fixed;
+  right: 0.75rem;
+  bottom: calc(58vh + 0.85rem + var(--safe-bottom));
+  z-index: 600;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 0;
+  background: #fff;
+  color: #1a73e8;
+  box-shadow: 0 4px 16px rgba(10, 42, 61, 0.22);
+  font-size: 1.25rem;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: transform 0.2s ease, bottom 0.28s ease;
+}
+.btn-locate:active { transform: scale(0.94); }
+.btn-locate.is-active {
+  background: #1a73e8;
+  color: #fff;
+}
+.btn-locate.is-pending { animation: pulse 1.2s ease-in-out infinite; }
+body.is-selecting .btn-locate { bottom: calc(38vh + 0.85rem + var(--safe-bottom)); }
+.sheet[data-height="peek"] ~ .btn-locate,
+body:has(.sheet[data-height="peek"]) .btn-locate { bottom: calc(30vh + 0.85rem + var(--safe-bottom)); }
+
+.geo-prompt {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  background: rgba(7, 24, 33, 0.45);
+  display: grid;
+  place-items: end center;
+  padding: 1rem;
+  padding-bottom: calc(1rem + var(--safe-bottom));
+}
+.geo-prompt[hidden] { display: none !important; }
+.geo-prompt-card {
+  width: min(420px, 100%);
+  background: var(--card);
+  color: var(--ink);
+  border-radius: 18px;
+  padding: 1.1rem 1.1rem 1rem;
+  box-shadow: var(--shadow);
+  animation: rise 0.28s ease;
+}
+.geo-prompt-title {
+  margin: 0 0 0.35rem;
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+.geo-prompt-text {
+  margin: 0 0 0.9rem;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+.geo-prompt-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.geo-prompt-actions .btn { width: 100%; }
+
+@media (max-width: 480px) {
+  .btn-locate {
+    width: 42px;
+    height: 42px;
+    bottom: calc(48vh + 0.7rem + var(--safe-bottom));
+  }
+  body.is-selecting .btn-locate { bottom: calc(34vh + 0.7rem + var(--safe-bottom)); }
+}
+
 /* Pins emoji prestataires */
 .place-pin,
 .user-pin {

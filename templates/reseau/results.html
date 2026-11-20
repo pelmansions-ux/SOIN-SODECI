@@ -23,6 +23,23 @@
 
 <div id="map" class="results-map" aria-label="Carte des prestataires"></div>
 
+<button type="button" id="btn-locate" class="btn-locate" aria-label="Activer ma position" title="Ma position">
+  <span aria-hidden="true">📍</span>
+</button>
+
+<div id="geo-prompt" class="geo-prompt" hidden role="dialog" aria-labelledby="geo-prompt-title">
+  <div class="geo-prompt-card">
+    <p id="geo-prompt-title" class="geo-prompt-title">Activer la localisation</p>
+    <p id="geo-prompt-text" class="geo-prompt-text">
+      Pour afficher les prestataires près de vous et votre position sur la carte, autorisez la localisation.
+    </p>
+    <div class="geo-prompt-actions">
+      <button type="button" class="btn btn-primary" id="geo-prompt-allow">Activer ma position</button>
+      <button type="button" class="btn btn-ghost" id="geo-prompt-later">Plus tard</button>
+    </div>
+  </div>
+</div>
+
 <aside id="sheet" class="sheet" data-height="mid"
        data-api="{% url 'api_prestataires' %}"
        data-route-api="{% url 'api_itineraire' %}">
@@ -99,5 +116,5 @@
 {{ zones_json|json_script:"zones-data" }}
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="{% static 'js/map-tiles.js' %}?v=1"></script>
-<script src="{% static 'js/results.js' %}?v=15"></script>
+<script src="{% static 'js/results.js' %}?v=16"></script>
 {% endblock %}
