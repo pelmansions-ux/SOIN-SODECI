@@ -85,16 +85,20 @@
   }
 
   function initMap() {
-    map = L.map(mapEl, { zoomControl: false, attributionControl: false }).setView(
-      [5.36, -4.01],
-      12
-    );
+    map = L.map(mapEl, {
+      zoomControl: false,
+      attributionControl: false,
+      maxZoom: 20,
+    }).setView([5.36, -4.01], 14);
     L.control.zoom({ position: 'bottomright' }).addTo(map);
-    // Fond type Google (clair, rues lisibles)
-    L.tileLayer(
-      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
-      { maxZoom: 19 }
-    ).addTo(map);
+    // Fond détaillé (rues, quartiers, POI) — style proche Google
+    if (window.SoinMapTiles) window.SoinMapTiles.addBaseTiles(map);
+    else {
+      L.tileLayer(
+        'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+        { maxZoom: 20, subdomains: 'abcd' }
+      ).addTo(map);
+    }
     markersLayer = L.layerGroup().addTo(map);
     routeLayer = L.layerGroup().addTo(map);
     setTimeout(function () {
@@ -653,10 +657,13 @@
           [p.lat, p.lng],
           15
         );
-        L.tileLayer(
-          'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
-          { maxZoom: 19 }
-        ).addTo(miniMap);
+        if (window.SoinMapTiles) window.SoinMapTiles.addBaseTiles(miniMap);
+        else {
+          L.tileLayer(
+            'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+            { maxZoom: 20, subdomains: 'abcd' }
+          ).addTo(miniMap);
+        }
         L.marker([p.lat, p.lng]).addTo(miniMap);
         setTimeout(function () {
           miniMap.invalidateSize();

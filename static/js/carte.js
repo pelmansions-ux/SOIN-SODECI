@@ -15,11 +15,14 @@
     }
   }
 
-  const map = L.map(mapEl).setView([5.36, -4.01], 7);
-  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
-    maxZoom: 19,
-    attribution: 'Tuiles &copy; Esri',
-  }).addTo(map);
+  const map = L.map(mapEl, { maxZoom: 20 }).setView([5.36, -4.01], 7);
+  if (window.SoinMapTiles) window.SoinMapTiles.addBaseTiles(map);
+  else {
+    L.tileLayer(
+      'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+      { maxZoom: 20, subdomains: 'abcd' }
+    ).addTo(map);
+  }
 
   const cluster = L.markerClusterGroup({ showCoverageOnHover: false, maxClusterRadius: 50 });
   map.addLayer(cluster);

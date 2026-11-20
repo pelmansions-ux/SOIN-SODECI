@@ -73,11 +73,14 @@
       return;
     }
 
-    map = L.map(mapEl, { scrollWheelZoom: true }).setView([5.36, -4.01], 8);
-    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
-      maxZoom: 19,
-      attribution: 'Tuiles &copy; Esri',
-    }).addTo(map);
+    map = L.map(mapEl, { scrollWheelZoom: true, maxZoom: 20 }).setView([5.36, -4.01], 8);
+    if (window.SoinMapTiles) window.SoinMapTiles.addBaseTiles(map);
+    else {
+      L.tileLayer(
+        'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+        { maxZoom: 20, subdomains: 'abcd' }
+      ).addTo(map);
+    }
     markersLayer = L.layerGroup().addTo(map);
 
     setTimeout(function () {

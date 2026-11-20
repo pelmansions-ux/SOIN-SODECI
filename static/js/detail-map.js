@@ -6,11 +6,17 @@
   const lng = parseFloat(el.dataset.lng);
   const name = el.dataset.name || 'Prestataire';
 
-  const map = L.map(el, { zoomControl: true, scrollWheelZoom: false }).setView([lat, lng], 15);
-  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
-    maxZoom: 19,
-    attribution: 'Tuiles &copy; Esri',
-  }).addTo(map);
+  const map = L.map(el, { zoomControl: true, scrollWheelZoom: false, maxZoom: 20 }).setView(
+    [lat, lng],
+    16
+  );
+  if (window.SoinMapTiles) window.SoinMapTiles.addBaseTiles(map);
+  else {
+    L.tileLayer(
+      'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+      { maxZoom: 20, subdomains: 'abcd' }
+    ).addTo(map);
+  }
   L.marker([lat, lng]).addTo(map).bindPopup(name);
   setTimeout(function () { map.invalidateSize(); }, 150);
 })();
