@@ -36,8 +36,22 @@
   let userLat = null;
   let userLng = null;
   let map, markersLayer, userMarker, miniMap, routeLayer, routeLabelMarker;
+  let watchId = null;
+  let followUser = true;
+  let lastReloadAt = 0;
+  let lastRouteRefreshAt = 0;
   const markerById = {};
   let zones = [];
+
+  const TYPE_EMOJI = {
+    pharmacie: '💊',
+    hopital: '🏥',
+    centre: '🩺',
+    dentaire: '🦷',
+    optique: '👓',
+    labo: '🔬',
+    specialiste: '👨‍⚕️',
+  };
 
   try {
     var zonesNode = document.getElementById('zones-data');
@@ -88,19 +102,96 @@
     }, 200);
   }
 
+  function emojiFor(p) {
+    return (p && (p.type_icon || TYPE_EMOJI[p.type])) || '📍';
+  }
+
+  function placeIcon(p, big) {
+    var emoji = emojiFor(p);
+    var size = big ? 44 : 36;
+    return L.divIcon({
+      className: 'place-pin' + (big ? ' is-selected' : ''),
+      html:
+        '<div class="place-pin-inner" aria-hidden="true"><span class="place-pin-emoji">' +
+        emoji +
+        '</span></div>',
+      iconSize: [size, size],
+      iconAnchor: [size / 2, size - 4],
+      popupAnchor: [0, -size + 8],
+    });
+  }
+
   function setUserMarker() {
     if (userLat == null || !map) return;
-    if (userMarker) map.removeLayer(userMarker);
-    userMarker = L.circleMarker([userLat, userLng], {
-      radius: 10,
-      color: '#fff',
-      fillColor: '#1a73e8',
-      fillOpacity: 1,
-      weight: 3,
-      className: 'user-pulse',
-    })
-      .addTo(map)
-      .bindPopup('Vous êtes ici');
+    var latlng = [userLat, userLng];
+    if (userMarker) {
+      userMarker.setLatLng(latlng);
+      return;
+    }
+    userMarker = L.marker(latlng, {
+      zIndexOffset: 1200,
+      interactive: false,
+      icon: L.divIcon({
+        className: 'user-pin',
+        html:
+          '<div class="user-pin-inner"><span class="user-pin-dot"></span><span class="user-pin-wave"></span></div>',
+        iconSize: [28, 28],
+        iconAnchor: [14, 14],
+      }),
+    }).addTo(map);
+  }
+
+  function onUserMoved(lat, lng, accuracy) {
+    var prevLat = userLat;
+    var prevLng = userLng;
+    userLat = lat;
+    userLng = lng;
+    sessionStorage.setItem('sodeci_lat', String(userLat));
+    sessionStorage.setItem('sodeci_lng', String(userLng));
+    sessionStorage.setItem('sodeci_geo', '1');
+    setUserMarker();
+
+    // Suivre le déplacement sur la carte (sauf si l’utilisateur a déplacé la carte)
+    if (followUser && map && !selected) {
+      map.panTo([userLat, userLng], { animate: true, duration: 0.4 });
+    } else if (followUser && map && selected) {
+      // Garder l’utilisateur visible pendant l’itinéraire
+      var b = map.getBounds();
+      if (!b.contains([userLat, userLng])) {
+        map.panTo([userLat, userLng], { animate: true, duration: 0.35 });
+      }
+    }
+
+    // Recalcul distances / liste toutes les ~45 s ou si déplacement > ~80 m
+    var movedFar = false;
+    if (prevLat != null) {
+      var dlat = (lat - prevLat) * 111320;
+      var dlng = (lng - prevLng) * 111320 * Math.cos((lat * Math.PI) / 180);
+      movedFar = Math.sqrt(dlat * dlat + dlng * dlng) > 80;
+    }
+    var now = Date.now();
+    if (!selected && (movedFar || now - lastReloadAt > 45000)) {
+      lastReloadAt = now;
+      load();
+    }
+    // Rafraîchir l’itinéraire si on a bougé
+    if (selected && selected.lat != null && (movedFar || now - lastRouteRefreshAt > 20000)) {
+      lastRouteRefreshAt = now;
+      loadRoute(selected);
+    }
+  }
+
+  function startWatch() {
+    if (!navigator.geolocation || watchId != null) return;
+    watchId = navigator.geolocation.watchPosition(
+      function (pos) {
+        onUserMoved(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy);
+      },
+      function () {
+        /* ignore erreurs watch (timeout) si on a déjà une position */
+      },
+      { enableHighAccuracy: true, maximumAge: 3000, timeout: 20000 }
+    );
   }
 
   function clearRoute() {
@@ -225,16 +316,17 @@
 
     setUserMarker();
 
-    var destIcon = L.divIcon({
-      className: 'dest-pin',
-      html:
-        '<div class="dest-pin-wrap"><div class="dest-pin-dot"></div><span class="dest-pin-label">Arrivée</span></div>',
-      iconSize: [72, 44],
-      iconAnchor: [14, 36],
-    });
-    L.marker([selected.lat, selected.lng], { icon: destIcon, zIndexOffset: 800 }).addTo(
-      routeLayer
-    );
+    L.marker([selected.lat, selected.lng], {
+      icon: placeIcon(selected, true),
+      zIndexOffset: 800,
+    })
+      .addTo(routeLayer)
+      .bindPopup(
+        '<strong>' +
+          escapeHtml(selected.nom) +
+          '</strong><br>' +
+          escapeHtml(emojiFor(selected) + ' ' + (selected.type_label || ''))
+      );
 
     var mid = midPoint(active.coordinates);
     if (mid) {
@@ -283,14 +375,13 @@
     document.body.classList.add('is-selecting');
     if (browsePanel) browsePanel.hidden = true;
     if (selectedPanel) selectedPanel.hidden = false;
+    // Panneau bas pour laisser la carte montrer l’itinéraire
     sheet.dataset.height = 'mid';
+    followUser = true;
 
     // Carte lisible : masquer tous les autres pins
     clearBrowseMarkers();
     clearRoute();
-    if (p.lat != null) {
-      map.setView([p.lat, p.lng], 16);
-    }
 
     document.querySelectorAll('.travel-chip').forEach(function (c) {
       c.classList.toggle('active', c.dataset.mode === 'car');
@@ -322,6 +413,10 @@
         });
       }
     }
+
+    setTimeout(function () {
+      if (map) map.invalidateSize();
+    }, 280);
 
     renderList([p]);
     loadRoute(p);
@@ -392,20 +487,36 @@
     Object.keys(markerById).forEach(function (k) {
       delete markerById[k];
     });
-    if (selected) return; // en sélection, la route gère l'affichage
+    if (selected) {
+      setUserMarker();
+      return; // en sélection, la route gère l'affichage
+    }
 
     var bounds = [];
-    list.slice(0, 30).forEach(function (p) {
+    list.slice(0, 40).forEach(function (p) {
       if (p.lat == null || p.lng == null) return;
-      var m = L.marker([p.lat, p.lng]);
+      var m = L.marker([p.lat, p.lng], { icon: placeIcon(p, false) });
       m.bindPopup(
         '<strong>' +
-          escapeHtml(p.nom) +
+          escapeHtml(emojiFor(p) + ' ' + p.nom) +
           '</strong><br>' +
           escapeHtml(p.type_label || '') +
-          (p.distance_label ? '<br><strong>' + escapeHtml(p.distance_label) + '</strong>' : '')
+          (p.distance_label ? '<br><strong>' + escapeHtml(p.distance_label) + '</strong>' : '') +
+          '<br><button type="button" class="popup-route" data-id="' +
+          p.id +
+          '">Itinéraire</button>'
       );
+      m.on('popupopen', function () {
+        var btn = document.querySelector('.popup-route[data-id="' + p.id + '"]');
+        if (btn) {
+          btn.addEventListener('click', function (e) {
+            e.preventDefault();
+            enterSelection(p);
+          });
+        }
+      });
       m.on('click', function () {
+        // Un clic = sélection + itinéraire (comme Google)
         enterSelection(p);
       });
       markersLayer.addLayer(m);
@@ -415,10 +526,10 @@
     setUserMarker();
     setTimeout(function () {
       map.invalidateSize();
-      if (userLat != null && bounds.length) {
-        var b = L.latLngBounds(bounds);
+      if (userLat != null && bounds.length && followUser) {
+        var b = L.latLngBounds(bounds.slice(0, 12));
         b.extend([userLat, userLng]);
-        map.fitBounds(b, { padding: [40, 40], maxZoom: 14 });
+        map.fitBounds(b, { padding: [36, 36], maxZoom: 15 });
       }
     }, 100);
   }
@@ -630,23 +741,22 @@
       return;
     }
     setStatus('Recherche de votre position…');
+    followUser = true;
     navigator.geolocation.getCurrentPosition(
       function (pos) {
-        userLat = pos.coords.latitude;
-        userLng = pos.coords.longitude;
-        sessionStorage.setItem('sodeci_lat', String(userLat));
-        sessionStorage.setItem('sodeci_lng', String(userLng));
-        sessionStorage.setItem('sodeci_geo', '1');
+        onUserMoved(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy);
         currentZone = '';
         if (zoneFilter) zoneFilter.value = '';
         if (zoneSuggest) zoneSuggest.hidden = true;
+        lastReloadAt = Date.now();
         load();
+        startWatch();
       },
       function () {
         setStatus('Position non partagée. Autorisez la localisation.');
         load();
       },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 20000 }
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 5000 }
     );
   }
 
@@ -753,6 +863,11 @@
   }
 
   initMap();
+  if (map) {
+    map.on('dragstart', function () {
+      followUser = false;
+    });
+  }
   updateTitle();
   locate();
 })();

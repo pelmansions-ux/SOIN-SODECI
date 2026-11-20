@@ -890,6 +890,75 @@ body.is-selecting .sheet[data-height="full"] { height: 72vh; }
   background: #d7e8ef;
 }
 
+/* Pins emoji prestataires */
+.place-pin,
+.user-pin {
+  background: transparent !important;
+  border: 0 !important;
+}
+.place-pin-inner {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid #0e6b8a;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.28);
+  display: grid;
+  place-items: center;
+}
+.place-pin.is-selected .place-pin-inner {
+  width: 44px;
+  height: 44px;
+  border-color: #ea4335;
+  border-width: 3px;
+  box-shadow: 0 4px 14px rgba(234, 67, 53, 0.45);
+}
+.place-pin-emoji {
+  font-size: 1.05rem;
+  line-height: 1;
+}
+.place-pin.is-selected .place-pin-emoji { font-size: 1.25rem; }
+
+.user-pin-inner {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+}
+.user-pin-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #1a73e8;
+  border: 3px solid #fff;
+  box-shadow: 0 2px 8px rgba(26, 115, 232, 0.55);
+  z-index: 2;
+}
+.user-pin-wave {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: rgba(26, 115, 232, 0.28);
+  animation: user-wave 1.8s ease-out infinite;
+}
+@keyframes user-wave {
+  0% { transform: scale(0.6); opacity: 0.9; }
+  100% { transform: scale(1.8); opacity: 0; }
+}
+
+.leaflet-popup-content .popup-route {
+  margin-top: 0.45rem;
+  appearance: none;
+  border: 0;
+  border-radius: 999px;
+  background: #1a73e8;
+  color: #fff;
+  font: 600 0.78rem var(--font);
+  padding: 0.4rem 0.75rem;
+  cursor: pointer;
+}
+
 .user-pulse {
   animation: pulse 1.6s ease-in-out infinite;
 }
