@@ -50,7 +50,28 @@ python manage.py geocode_prestataires --nominatim --limit 50
 python manage.py test reseau
 ```
 
-## Production
+## Production (Render)
+
+Créer un **Web Service** (pas Static Site) connecté au repo `SOIN-SODECI` :
+
+| Champ | Valeur |
+|--------|--------|
+| Runtime | Python 3 |
+| Build Command | `chmod +x build.sh && ./build.sh` |
+| Start Command | `gunicorn config.wsgi:application` |
+
+Variables d’environnement :
+
+```
+DJANGO_SECRET_KEY=<clé longue aléatoire>
+DJANGO_DEBUG=False
+DJANGO_ALLOWED_HOSTS=.onrender.com
+DJANGO_CSRF_TRUSTED_ORIGINS=https://<votre-service>.onrender.com
+```
+
+Ne mettez **pas** `npm install` : il n’y a pas de frontend Node.
+
+## Production (local / autre)
 
 Dans `.env` :
 
