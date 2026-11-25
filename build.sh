@@ -6,4 +6,5 @@ python manage.py collectstatic --noinput
 python manage.py migrate --noinput
 python manage.py import_prestataires --clear
 python manage.py refine_gps --all
+python manage.py apply_exact_gps
 python manage.py ensure_demo_users

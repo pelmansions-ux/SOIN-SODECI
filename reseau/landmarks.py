@@ -91,7 +91,15 @@ def refine_coords(
     commune: str = '',
     fallback=None,
     force_unique: bool = False,
+    pk: int | None = None,
 ):
+    from reseau.exact_gps import lookup_exact
+
+    # 1) Coordonnées vérifiées (Nominatim / Google) — aucun décalage
+    exact = lookup_exact(nom=nom, adresse=adresse, zone=zone, pk=pk)
+    if exact:
+        return exact
+
     text = f'{adresse} {secteur} {zone} {commune} {nom}'.upper()
     base = None
     precise = False

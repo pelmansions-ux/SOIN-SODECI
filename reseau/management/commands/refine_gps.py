@@ -38,6 +38,7 @@ class Command(BaseCommand):
                 commune=p.commune,
                 fallback=(p.latitude, p.longitude) if p.latitude is not None else None,
                 force_unique=must,
+                pk=p.pk,
             )
             if not refined:
                 continue
