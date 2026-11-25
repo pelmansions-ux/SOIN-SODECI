@@ -766,7 +766,11 @@
         items.length +
           ' résultat' +
           (items.length > 1 ? 's' : '') +
-          (data.distance_mode === 'driving' ? ' · distance voiture' : '') +
+          (data.distance_mode === 'google'
+            ? ' · Google Maps'
+            : data.distance_mode === 'driving'
+              ? ' · distance voiture'
+              : '') +
           ' · plus proche → plus loin'
       );
     } else setStatus('Activez la position pour trier par distance');
