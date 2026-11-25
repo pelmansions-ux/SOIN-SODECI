@@ -1311,7 +1311,24 @@ body:has(.sheet[data-height="peek"]) .btn-locate { bottom: calc(30vh + 0.85rem +
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .reveal, .fiche-panel, .btn, .zone-row, .p-card, .user-pulse, .sheet {
+  .reveal,
+  .fiche-panel,
+  .btn,
+  .zone-row,
+  .p-card,
+  .user-pulse,
+  .sheet,
+  .results-top,
+  .results-map,
+  .selected-panel,
+  #browse-panel,
+  .place-pin-inner,
+  .route-bubble,
+  .login-brand,
+  .login-card,
+  .logo-wrap,
+  .login-ripple,
+  .login-blob {
     animation: none !important;
     transition: none !important;
   }
