@@ -269,10 +269,22 @@ def osrm_route(
 
 
 def driving_route(origin_lat, origin_lng, dest_lat, dest_lng, user_agent='SoinSODECI/2.1'):
+    from reseau.google_maps import google_api_key, google_route
+
+    if google_api_key():
+        g = google_route(origin_lat, origin_lng, dest_lat, dest_lng, mode='car')
+        if g:
+            return g
     return osrm_route(origin_lat, origin_lng, dest_lat, dest_lng, mode='car', user_agent=user_agent)
 
 
 def walking_route(origin_lat, origin_lng, dest_lat, dest_lng, user_agent='SoinSODECI/2.1'):
+    from reseau.google_maps import google_api_key, google_route
+
+    if google_api_key():
+        g = google_route(origin_lat, origin_lng, dest_lat, dest_lng, mode='foot')
+        if g:
+            return g
     return osrm_route(origin_lat, origin_lng, dest_lat, dest_lng, mode='foot', user_agent=user_agent)
 
 
@@ -283,13 +295,20 @@ def road_distances_km(
     user_agent: str = 'SoinSODECI/2.1',
 ) -> list[float | None]:
     """
-    Distances routières (voiture) via OSRM — proches de Google Maps.
-    Retourne une liste alignée sur destinations (None si indisponible).
+    Distances routières voiture.
+    Priorité : Google Distance Matrix si GOOGLE_MAPS_API_KEY, sinon OSRM.
     """
     if not destinations:
         return []
 
-    # OSRM: lon,lat — source = position utilisateur
+    from reseau.google_maps import google_api_key, google_distance_matrix_km
+
+    if google_api_key():
+        g = google_distance_matrix_km(origin_lat, origin_lng, destinations, mode='driving')
+        if any(d is not None for d in g):
+            return g
+
+    # Fallback OSRM
     coords = [f'{origin_lng},{origin_lat}']
     for lat, lng in destinations[:40]:
         coords.append(f'{lng},{lat}')

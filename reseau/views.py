@@ -14,6 +14,7 @@ from .geo import (
     road_distances_km,
     walking_route,
 )
+from .google_maps import google_api_key
 from .models import Prestataire
 from .types_soin import TYPE_CHOICES, TYPE_ICONS, TYPE_LABELS
 
@@ -139,14 +140,21 @@ def api_prestataires(request):
         road = road_distances_km(user_lat, user_lng, dests)
         if any(d is not None for d in road):
             distance_mode = 'driving'
+            use_google = bool(google_api_key())
             for it, d in zip(candidates, road):
                 air = it.get('distance_air_km')
-                d, mode = realistic_road_km(air, d)
+                if use_google and d is not None:
+                    # Distance Matrix Google = référence (pas de correction)
+                    mode = 'driving'
+                else:
+                    d, mode = realistic_road_km(air, d)
                 it['distance_mode'] = mode
                 it['distance_km'] = d
                 it['distance_label'] = format_distance_km(d) if d is not None else None
                 if d is not None:
                     it['duration_min'] = estimate_duration_min(d, 'car')
+            if use_google:
+                distance_mode = 'google'
             candidates.sort(
                 key=lambda x: (
                     x.get('distance_km') is None,
@@ -239,10 +247,14 @@ def api_itineraire(request):
     air = haversine_km(o_lat, o_lng, d_lat, d_lng)
     car = driving_route(o_lat, o_lng, d_lat, d_lng)
     foot = walking_route(o_lat, o_lng, d_lat, d_lng)
+    use_google = bool(google_api_key())
 
     def _correct(route, mode: str):
         if not route:
             return None
+        # Google Directions : garder distance & durée officielles
+        if use_google and route.get('provider') == 'google':
+            return route
         dist, _ = realistic_road_km(air, route.get('distance_km'))
         if dist is None:
             return route

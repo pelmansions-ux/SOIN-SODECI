@@ -13,6 +13,8 @@ EXACT_BY_PATTERN: list[tuple[str, float, float]] = [
     (r'PHARMACIE\s+SAINTE[\s\-]*FAMILLE', 5.3557089, -3.9673062),
     (r'VISION\s*2000', 5.3881002, -3.9733093),
     (r'PALM\s*CLUB', 5.3335, -3.9865),
+    # Assil Optic — plus code Google 92M6+8RV Angré
+    (r'ASSIL\s*OPTIC', 5.3833625, -3.9879531),
 ]
 
 _DATA_FILE = Path(__file__).resolve().parent.parent / 'data' / 'exact_gps.json'
