@@ -14,6 +14,11 @@ SECRET_KEY = os.environ.get(
     'django-insecure-dev-only-change-me-sodeci-reseau-soin',
 )
 
+# Clé Google Maps (Distance Matrix / Directions / Maps JavaScript)
+GOOGLE_MAPS_API_KEY = (
+    os.environ.get('GOOGLE_MAPS_API_KEY') or os.environ.get('GOOGLE_API_KEY') or ''
+).strip()
+
 DEBUG = os.environ.get('DJANGO_DEBUG', 'True').lower() in ('1', 'true', 'yes')
 
 ALLOWED_HOSTS = [

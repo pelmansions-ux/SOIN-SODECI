@@ -70,8 +70,8 @@ DJANGO_CSRF_TRUSTED_ORIGINS=https://<votre-service>.onrender.com
 GOOGLE_MAPS_API_KEY=<clé Google Maps Platform>
 ```
 
-Pour des distances **identiques à Google Maps**, ajoutez `GOOGLE_MAPS_API_KEY`  
-(APIs à activer : **Distance Matrix**, **Directions**, éventuellement **Geocoding**).
+Pour une carte **identique à Google Maps** + distances exactes, ajoutez `GOOGLE_MAPS_API_KEY`  
+(APIs à activer : **Maps JavaScript API**, **Directions API**, **Distance Matrix API**).
 
 Ne mettez **pas** `npm install` : il n’y a pas de frontend Node.
 

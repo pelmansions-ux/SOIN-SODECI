@@ -5,7 +5,9 @@
 {% block body_class %}screen-results{% endblock %}
 
 {% block extra_head %}
+{% if not google_maps_api_key %}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+{% endif %}
 <meta name="apple-mobile-web-app-capable" content="yes">
 {% endblock %}
 
@@ -114,7 +116,13 @@
 </div>
 
 {{ zones_json|json_script:"zones-data" }}
+{% if google_maps_api_key %}
+<script src="{% static 'js/results-gmaps.js' %}?v=1"></script>
+<script async defer
+  src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=geometry&language=fr&region=CI&v=weekly&callback=initSoinGoogleMap"></script>
+{% else %}
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="{% static 'js/map-tiles.js' %}?v=2"></script>
 <script src="{% static 'js/results.js' %}?v=21"></script>
+{% endif %}
 {% endblock %}
