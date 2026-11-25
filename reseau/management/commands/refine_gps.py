@@ -50,7 +50,7 @@ class Command(BaseCommand):
                 updated += 1
 
         # Contrôle Palm Club
-        palm = (5.3335, -3.9865)
+        palm = (5.3532676, -4.0024157)
         from reseau.geo import haversine_km
 
         self.stdout.write(self.style.SUCCESS(f'GPS affinés: {updated}'))

@@ -117,7 +117,7 @@
 
 {{ zones_json|json_script:"zones-data" }}
 {% if google_maps_api_key %}
-<script src="{% static 'js/results-gmaps.js' %}?v=1"></script>
+<script src="{% static 'js/results-gmaps.js' %}?v=2"></script>
 <script async defer
   src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=geometry&language=fr&region=CI&v=weekly&callback=initSoinGoogleMap"></script>
 {% else %}

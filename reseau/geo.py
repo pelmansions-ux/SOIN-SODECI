@@ -293,24 +293,25 @@ def road_distances_km(
     origin_lng: float,
     destinations: list[tuple[float, float]],
     user_agent: str = 'SoinSODECI/2.1',
-) -> list[float | None]:
+) -> tuple[list[float | None], str]:
     """
     Distances routières voiture.
-    Priorité : Google Distance Matrix si GOOGLE_MAPS_API_KEY, sinon OSRM.
+    Priorité : Google Routes / Distance Matrix, sinon OSRM.
+    Retourne (distances, provider) avec provider in google|osrm|none.
     """
     if not destinations:
-        return []
+        return [], 'none'
 
-    from reseau.google_maps import google_api_key, google_distance_matrix_km
+    from reseau.google_maps import google_api_key, google_matrix_ok
 
     if google_api_key():
-        g = google_distance_matrix_km(origin_lat, origin_lng, destinations, mode='driving')
-        if any(d is not None for d in g):
-            return g
+        g, ok = google_matrix_ok(origin_lat, origin_lng, destinations, mode='driving')
+        if ok:
+            return g, 'google'
 
     # Fallback OSRM
     coords = [f'{origin_lng},{origin_lat}']
-    for lat, lng in destinations[:40]:
+    for lat, lng in destinations[:60]:
         coords.append(f'{lng},{lat}')
 
     path = ';'.join(coords) + '?sources=0&annotations=distance'
@@ -321,10 +322,10 @@ def road_distances_km(
 
     for base in endpoints:
         try:
-            return _osrm_table(base + path, user_agent, len(destinations))
+            return _osrm_table(base + path, user_agent, len(destinations)), 'osrm'
         except Exception:
             continue
-    return [None] * len(destinations)
+    return [None] * len(destinations), 'none'
 
 
 def geocode_nominatim(query: str, user_agent: str = 'SoinSODECI/2.0 (contact: rh@sodeci.local)') -> tuple[float, float] | None:

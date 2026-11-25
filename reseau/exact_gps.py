@@ -12,7 +12,8 @@ EXACT_BY_PATTERN: list[tuple[str, float, float]] = [
     # Pharmacie Sainte Famille Cocody (Cap Nord / Cité Allabra / Riviera 3)
     (r'PHARMACIE\s+SAINTE[\s\-]*FAMILLE', 5.3557089, -3.9673062),
     (r'VISION\s*2000', 5.3881002, -3.9733093),
-    (r'PALM\s*CLUB', 5.3335, -3.9865),
+    # Hôtel Palm Club — Boulevard André Latrille, Cocody (Nominatim)
+    (r'PALM\s*CLUB', 5.3532676, -4.0024157),
     # Assil Optic — plus code Google 92M6+8RV Angré
     (r'ASSIL\s*OPTIC', 5.3833625, -3.9879531),
 ]

@@ -71,7 +71,13 @@ GOOGLE_MAPS_API_KEY=<clé Google Maps Platform>
 ```
 
 Pour une carte **identique à Google Maps** + distances exactes, ajoutez `GOOGLE_MAPS_API_KEY`  
-(APIs à activer : **Maps JavaScript API**, **Directions API**, **Distance Matrix API**).
+et **activez la facturation** sur le projet Google Cloud, puis les APIs :
+
+1. **Maps JavaScript API** (carte + trafic)
+2. **Routes API** (distances & itinéraires — obligatoire pour les nouvelles clés)
+3. Éventuellement **Geocoding API** (adresses)
+
+Sans **Routes API**, la carte s’affiche mais les distances retombent sur OSRM (inexactes).
 
 Ne mettez **pas** `npm install` : il n’y a pas de frontend Node.
 

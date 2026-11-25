@@ -9,7 +9,7 @@ import re
 LANDMARKS: list[tuple[str, float, float]] = [
     # --- Cocody très précis (coords Nominatim / repères Google) ---
     (r'VISION\s*2000', 5.3881002, -3.9733093),  # Caféier / Cocody (Nominatim)
-    (r'PALM\s*CLUB|HOTEL\s*PALM', 5.3335, -3.9865),
+    (r'PALM\s*CLUB|HOTEL\s*PALM', 5.3532676, -4.0024157),
     (r'LYC[EÉ]E\s*TECHNIQUE', 5.3398, -3.9912),
     (r'CARREFOUR\s*ABATTA', 5.3726499, -3.9292045),
     (r'\bABATTA\b', 5.3726499, -3.9292045),

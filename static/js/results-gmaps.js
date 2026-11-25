@@ -90,6 +90,20 @@
   function setStatus(msg) {
     if (statusEl) statusEl.textContent = msg;
   }
+  function formatDistanceKm(km) {
+    if (km == null || isNaN(km)) return '';
+    if (km < 1) return Math.round(km * 1000) + ' m';
+    return (
+      km.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) +
+      ' km'
+    );
+  }
+  function providerLabel(mode) {
+    if (mode === 'google') return 'Google Maps';
+    if (mode === 'driving') return 'itinéraire routier';
+    if (mode === 'air') return 'vol d’oiseau';
+    return '';
+  }
   function updateTitle() {
     if (!titleEl) return;
     if (currentZone) titleEl.textContent = currentZone;
@@ -582,11 +596,13 @@
       el.textContent = key === 'tous' ? String(total) : String(counts[key] || 0);
     });
     if (data.sorted_by_distance) {
+      var pl = providerLabel(data.distance_mode);
       setStatus(
         items.length +
           ' résultat' +
           (items.length > 1 ? 's' : '') +
-          ' · Google Maps · plus proche → plus loin'
+          (pl ? ' · ' + pl : '') +
+          ' · plus proche → plus loin'
       );
     } else setStatus('Activez la position pour trier par distance');
     updateTitle();
@@ -594,6 +610,86 @@
       clearRoute();
       renderList(items);
       renderMarkers(items);
+    }
+    if (data.sorted_by_distance && data.distance_mode !== 'google') {
+      refineDistancesWithGoogle();
+    }
+  }
+
+  /** Recalcule les distances via Distance Matrix JS (= app Google Maps). */
+  function refineDistancesWithGoogle() {
+    if (
+      userLat == null ||
+      userLng == null ||
+      !items.length ||
+      typeof google === 'undefined' ||
+      !google.maps ||
+      !google.maps.DistanceMatrixService
+    ) {
+      return;
+    }
+    var targets = items.filter(function (p) {
+      return p.lat != null && p.lng != null;
+    });
+    if (!targets.length) return;
+
+    var service = new google.maps.DistanceMatrixService();
+    var chunk = 25;
+    var pending = Math.ceil(targets.length / chunk);
+    var gotAny = false;
+
+    function finishChunk() {
+      pending -= 1;
+      if (pending > 0) return;
+      if (!gotAny) return;
+      items.sort(function (a, b) {
+        var da = a.distance_km != null ? a.distance_km : 1e9;
+        var db = b.distance_km != null ? b.distance_km : 1e9;
+        return da - db;
+      });
+      setStatus(
+        items.length +
+          ' résultat' +
+          (items.length > 1 ? 's' : '') +
+          ' · Google Maps · plus proche → plus loin'
+      );
+      if (!selected) {
+        renderList(items);
+        renderMarkers(items);
+      }
+    }
+
+    for (var start = 0; start < targets.length; start += chunk) {
+      (function (batch) {
+        service.getDistanceMatrix(
+          {
+            origins: [ll(userLat, userLng)],
+            destinations: batch.map(function (p) {
+              return ll(p.lat, p.lng);
+            }),
+            travelMode: google.maps.TravelMode.DRIVING,
+            unitSystem: google.maps.UnitSystem.METRIC,
+            region: 'CI',
+          },
+          function (response, status) {
+            if (status === 'OK' && response && response.rows && response.rows[0]) {
+              var els = response.rows[0].elements || [];
+              els.forEach(function (el, i) {
+                if (!el || el.status !== 'OK' || !el.distance) return;
+                var km = el.distance.value / 1000;
+                batch[i].distance_km = Math.round(km * 100) / 100;
+                batch[i].distance_label = formatDistanceKm(batch[i].distance_km);
+                batch[i].distance_mode = 'google';
+                if (el.duration) {
+                  batch[i].duration_min = Math.max(1, Math.round(el.duration.value / 60));
+                }
+                gotAny = true;
+              });
+            }
+            finishChunk();
+          }
+        );
+      })(targets.slice(start, start + chunk));
     }
   }
 
