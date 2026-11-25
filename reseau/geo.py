@@ -157,11 +157,11 @@ def format_distance_km(dist_km: float) -> str:
 def realistic_road_km(air_km: float | None, road_km: float | None) -> tuple[float | None, str]:
     """
     Distance affichée proche de Google Maps.
-    OSRM public à Abidjan allonge souvent beaucoup les trajets ;
-    on corrige avec un facteur urbain réaliste (~1,20 × vol d'oiseau),
-    proche de Google Maps.
+    OSRM public à Abidjan allonge souvent les trajets vs Google.
+    On utilise OSRM s'il est cohérent, sinon ~1,15 × vol d'oiseau
+    (facteur urbain proche de Google Maps).
     """
-    urban = 1.20
+    urban = 1.15
     if road_km is None and air_km is None:
         return None, 'none'
     if road_km is None:
@@ -173,8 +173,8 @@ def realistic_road_km(air_km: float | None, road_km: float | None) -> tuple[floa
     if air_km >= 0.2 and road_km < air_km * 0.4:
         return round(air_km * urban, 2), 'est'
 
-    # OSRM trop long vs réalité Google (~1,15–1,5× air en ville)
-    if air_km >= 0.15 and road_km > air_km * 1.65:
+    # OSRM trop long vs Google (~1,1–1,35× air en ville à Abidjan)
+    if air_km >= 0.15 and road_km > air_km * 1.35:
         return round(air_km * urban, 2), 'est'
 
     return round(road_km, 2), 'driving'
