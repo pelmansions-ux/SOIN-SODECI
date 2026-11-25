@@ -138,8 +138,14 @@ def api_prestataires(request):
         if any(d is not None for d in road):
             distance_mode = 'driving'
             for it, d in zip(candidates, road):
+                air = it.get('distance_air_km')
+                # Garde-fou : OSRM peut coller 2 points au même nœud (ex. 20 m)
+                # alors que le vol d'oiseau est bien plus grand → on garde l'air.
                 if d is None:
-                    d = it.get('distance_air_km')
+                    d = air
+                    it['distance_mode'] = 'air'
+                elif air is not None and air >= 0.25 and d < air * 0.35:
+                    d = air
                     it['distance_mode'] = 'air'
                 else:
                     it['distance_mode'] = 'driving'

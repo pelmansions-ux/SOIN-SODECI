@@ -40,13 +40,18 @@
   let travelMode = 'car';
   let userLat = null;
   let userLng = null;
-  let map, markersLayer, userMarker, miniMap, routeLayer, routeLabelMarker;
+  let userAccuracy = null;
+  let bestAccuracy = Infinity;
+  let map, markersLayer, userMarker, userAccuracyCircle, miniMap, routeLayer, routeLabelMarker;
   let watchId = null;
   let followUser = true;
   let lastReloadAt = 0;
   let lastRouteRefreshAt = 0;
+  let waitingAccurateFix = false;
   const markerById = {};
   let zones = [];
+  const MAX_ACCEPT_ACCURACY_M = 80;
+  const GOOD_ACCURACY_M = 40;
 
   const TYPE_EMOJI = {
     pharmacie: '💊',
@@ -135,63 +140,110 @@
     var latlng = [userLat, userLng];
     if (userMarker) {
       userMarker.setLatLng(latlng);
-      return;
+    } else {
+      userMarker = L.marker(latlng, {
+        zIndexOffset: 1200,
+        interactive: false,
+        icon: L.divIcon({
+          className: 'user-pin',
+          html:
+            '<div class="user-pin-inner"><span class="user-pin-dot"></span><span class="user-pin-wave"></span></div>',
+          iconSize: [28, 28],
+          iconAnchor: [14, 14],
+        }),
+      }).addTo(map);
     }
-    userMarker = L.marker(latlng, {
-      zIndexOffset: 1200,
-      interactive: false,
-      icon: L.divIcon({
-        className: 'user-pin',
-        html:
-          '<div class="user-pin-inner"><span class="user-pin-dot"></span><span class="user-pin-wave"></span></div>',
-        iconSize: [28, 28],
-        iconAnchor: [14, 14],
-      }),
-    }).addTo(map);
+    // Cercle de précision (comme Google Maps)
+    var radius = Math.max(12, Math.min(userAccuracy || 40, 120));
+    if (userAccuracyCircle) {
+      userAccuracyCircle.setLatLng(latlng);
+      userAccuracyCircle.setRadius(radius);
+    } else {
+      userAccuracyCircle = L.circle(latlng, {
+        radius: radius,
+        color: '#1a73e8',
+        weight: 1,
+        opacity: 0.35,
+        fillColor: '#1a73e8',
+        fillOpacity: 0.12,
+        interactive: false,
+      }).addTo(map);
+    }
+  }
+
+  function metersBetween(lat1, lng1, lat2, lng2) {
+    var dlat = (lat2 - lat1) * 111320;
+    var dlng = (lng2 - lng1) * 111320 * Math.cos((lat1 * Math.PI) / 180);
+    return Math.sqrt(dlat * dlat + dlng * dlng);
   }
 
   function onUserMoved(lat, lng, accuracy) {
+    var acc = typeof accuracy === 'number' && accuracy > 0 ? accuracy : 999;
+    // Ignorer un fix nettement moins précis que le meilleur connu
+    if (userLat != null && acc > bestAccuracy + 40 && acc > GOOD_ACCURACY_M) {
+      return false;
+    }
+
     var prevLat = userLat;
     var prevLng = userLng;
+    var improved = acc < bestAccuracy - 5 || userLat == null;
     userLat = lat;
     userLng = lng;
-    sessionStorage.setItem('sodeci_lat', String(userLat));
-    sessionStorage.setItem('sodeci_lng', String(userLng));
-    sessionStorage.setItem('sodeci_geo', '1');
+    userAccuracy = acc;
+    if (acc < bestAccuracy) bestAccuracy = acc;
+
+    try {
+      sessionStorage.setItem('sodeci_lat', String(userLat));
+      sessionStorage.setItem('sodeci_lng', String(userLng));
+      sessionStorage.setItem('sodeci_acc', String(acc));
+      sessionStorage.setItem('sodeci_geo', '1');
+    } catch (e) {}
+
     setUserMarker();
 
-    // Suivre le déplacement sur la carte (sauf si l’utilisateur a déplacé la carte)
     if (followUser && map && !selected) {
-      map.panTo([userLat, userLng], { animate: true, duration: 0.4 });
+      map.panTo([userLat, userLng], { animate: true, duration: 0.35 });
     } else if (followUser && map && selected) {
-      // Garder l’utilisateur visible pendant l’itinéraire
       var b = map.getBounds();
       if (!b.contains([userLat, userLng])) {
-        map.panTo([userLat, userLng], { animate: true, duration: 0.35 });
+        map.panTo([userLat, userLng], { animate: true, duration: 0.3 });
       }
     }
 
-    // Recalcul distances / liste toutes les ~45 s ou si déplacement > ~80 m
     var movedFar = false;
     if (prevLat != null) {
-      var dlat = (lat - prevLat) * 111320;
-      var dlng = (lng - prevLng) * 111320 * Math.cos((lat * Math.PI) / 180);
-      movedFar = Math.sqrt(dlat * dlat + dlng * dlng) > 80;
+      movedFar = metersBetween(prevLat, prevLng, lat, lng) > 50;
     }
     var now = Date.now();
-    if (!selected && (movedFar || now - lastReloadAt > 45000)) {
+    var shouldReload =
+      !selected &&
+      (waitingAccurateFix ||
+        improved ||
+        movedFar ||
+        now - lastReloadAt > 30000);
+
+    if (waitingAccurateFix && (acc <= GOOD_ACCURACY_M || now - lastReloadAt > 8000)) {
+      waitingAccurateFix = false;
+      shouldReload = true;
+    }
+
+    if (shouldReload) {
       lastReloadAt = now;
       load();
     }
-    // Rafraîchir l’itinéraire si on a bougé
-    if (selected && selected.lat != null && (movedFar || now - lastRouteRefreshAt > 20000)) {
+    if (selected && selected.lat != null && (movedFar || improved || now - lastRouteRefreshAt > 15000)) {
       lastRouteRefreshAt = now;
       loadRoute(selected);
     }
+    return true;
   }
 
   function startWatch() {
-    if (!navigator.geolocation || watchId != null) return;
+    if (!navigator.geolocation) return;
+    if (watchId != null) {
+      navigator.geolocation.clearWatch(watchId);
+      watchId = null;
+    }
     watchId = navigator.geolocation.watchPosition(
       function (pos) {
         onUserMoved(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy);
@@ -199,7 +251,7 @@
       function () {
         /* ignore erreurs watch (timeout) si on a déjà une position */
       },
-      { enableHighAccuracy: true, maximumAge: 3000, timeout: 20000 }
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 25000 }
     );
   }
 
@@ -796,37 +848,52 @@
     }
 
     hideGeoPrompt();
-    setStatus('Recherche de votre position…');
+    setStatus('GPS haute précision…');
     setLocateBtn('pending');
     followUser = true;
+    waitingAccurateFix = true;
+    bestAccuracy = Infinity;
 
     navigator.geolocation.getCurrentPosition(
       function (pos) {
         hideGeoPrompt();
         setLocateBtn('on');
-        onUserMoved(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy);
+        var acc = pos.coords.accuracy;
+        onUserMoved(pos.coords.latitude, pos.coords.longitude, acc);
         if (!opts.keepZone) {
           currentZone = '';
           if (zoneFilter) zoneFilter.value = '';
           if (zoneSuggest) zoneSuggest.hidden = true;
         }
         lastReloadAt = Date.now();
-        load();
+        if (acc <= MAX_ACCEPT_ACCURACY_M) {
+          setStatus(
+            'Position ±' + Math.round(acc) + ' m · calcul des distances…'
+          );
+          waitingAccurateFix = acc > GOOD_ACCURACY_M;
+          load();
+        } else {
+          setStatus(
+            'Position approximative (±' +
+              Math.round(acc) +
+              ' m) · affinage GPS…'
+          );
+          load();
+        }
         startWatch();
       },
       function (err) {
         setLocateBtn('off');
+        waitingAccurateFix = false;
         var msg = geoErrorMessage(err);
         setStatus(msg);
-        // Toujours proposer d’activer (surtout après refus ou GPS off)
         showGeoPrompt(msg);
-        if (userLat == null) load();
-        else load();
+        load();
       },
       {
         enableHighAccuracy: true,
-        timeout: fromUser ? 25000 : 12000,
-        maximumAge: fromUser ? 0 : 8000,
+        timeout: fromUser ? 30000 : 20000,
+        maximumAge: 0, // jamais une vieille position en cache navigateur
       }
     );
   }
@@ -835,9 +902,12 @@
     try {
       var la = parseFloat(sessionStorage.getItem('sodeci_lat'));
       var ln = parseFloat(sessionStorage.getItem('sodeci_lng'));
+      var acc = parseFloat(sessionStorage.getItem('sodeci_acc'));
       if (!isNaN(la) && !isNaN(ln)) {
         userLat = la;
         userLng = ln;
+        userAccuracy = !isNaN(acc) ? acc : 80;
+        bestAccuracy = userAccuracy;
         setUserMarker();
         setLocateBtn('on');
         return true;
@@ -849,10 +919,10 @@
   function bootLocation() {
     var hasCache = restoreCachedPosition();
     if (hasCache) {
-      setStatus('Mise à jour de votre position…');
+      setStatus('Recalibrage GPS pour distances exactes…');
+      // Affiche vite la carte, puis force un GPS frais
       load();
     }
-    // Demande auto au chargement (Safari affiche la pop-up système)
     if (navigator.permissions && navigator.permissions.query) {
       navigator.permissions
         .query({ name: 'geolocation' })
@@ -865,8 +935,7 @@
             if (!hasCache) load();
             return;
           }
-          // prompt ou granted → tenter automatiquement
-          locate({ keepZone: true, fromUser: false });
+          locate({ keepZone: true, fromUser: true });
           status.onchange = function () {
             if (status.state === 'granted') locate({ keepZone: true, fromUser: true });
             if (status.state === 'denied') {
@@ -878,11 +947,10 @@
           };
         })
         .catch(function () {
-          locate({ keepZone: true, fromUser: false });
+          locate({ keepZone: true, fromUser: true });
         });
     } else {
-      // iOS Safari ancien : pas d’API permissions → demande directe
-      locate({ keepZone: true, fromUser: false });
+      locate({ keepZone: true, fromUser: true });
     }
   }
 
