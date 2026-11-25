@@ -816,18 +816,34 @@
     btnLocate.classList.toggle('is-pending', state === 'pending');
   }
 
+  function isMobileDevice() {
+    return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent || '');
+  }
+
+  function deniedLocationHelp() {
+    if (isMobileDevice()) {
+      if (/iPhone|iPad|iPod/i.test(navigator.userAgent || '')) {
+        return 'Localisation refusée. Sur iPhone : Réglages → Safari (ou Chrome) → Localisation → Autoriser, puis cliquez « Activer ma position ».';
+      }
+      return 'Localisation refusée. Dans Chrome Android : icône cadenas → Autorisations → Localisation → Autoriser, puis « Activer ma position ».';
+    }
+    return 'Localisation refusée sur l’ordinateur. Cliquez sur le cadenas 🔒 à gauche de l’URL → Localisation → Autoriser, puis sur « Activer ma position ». (Chrome / Edge / Firefox)';
+  }
+
   function geoErrorMessage(err) {
     var code = err && err.code;
     if (code === 1) {
-      return 'Localisation refusée. Sur iPhone : Réglages → Safari → Localisation → Autoriser, puis touchez « Activer ma position ».';
+      return deniedLocationHelp();
     }
     if (code === 2) {
-      return 'Position indisponible. Activez le GPS / le service de localisation du téléphone, puis réessayez.';
+      return isMobileDevice()
+        ? 'Position indisponible. Activez le GPS du téléphone, puis réessayez.'
+        : 'Position indisponible. Activez la localisation Windows (Paramètres → Confidentialité → Localisation), puis réessayez.';
     }
     if (code === 3) {
-      return 'Délai dépassé. Vérifiez que la localisation est activée, puis réessayez.';
+      return 'Délai dépassé. Vérifiez que la localisation est activée, puis cliquez « Activer ma position ».';
     }
-    return 'Impossible d’obtenir votre position. Touchez « Activer ma position » pour réessayer.';
+    return 'Impossible d’obtenir votre position. Cliquez « Activer ma position » pour réessayer.';
   }
 
   function locate(opts) {
@@ -929,9 +945,7 @@
         .then(function (status) {
           if (status.state === 'denied') {
             setLocateBtn('off');
-            showGeoPrompt(
-              'Localisation bloquée. Autorisez-la pour ce site, puis touchez « Activer ma position ».'
-            );
+            showGeoPrompt(deniedLocationHelp());
             if (!hasCache) load();
             return;
           }
@@ -940,9 +954,7 @@
             if (status.state === 'granted') locate({ keepZone: true, fromUser: true });
             if (status.state === 'denied') {
               setLocateBtn('off');
-              showGeoPrompt(
-                'Localisation bloquée. Autorisez-la pour ce site, puis touchez « Activer ma position ».'
-              );
+              showGeoPrompt(deniedLocationHelp());
             }
           };
         })

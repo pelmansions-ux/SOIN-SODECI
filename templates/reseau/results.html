@@ -31,7 +31,7 @@
   <div class="geo-prompt-card">
     <p id="geo-prompt-title" class="geo-prompt-title">Activer la localisation</p>
     <p id="geo-prompt-text" class="geo-prompt-text">
-      Pour afficher les prestataires près de vous et votre position sur la carte, autorisez la localisation.
+      Pour afficher les prestataires près de vous, autorisez la localisation du navigateur (cadenas 🔒 à côté de l’adresse du site).
     </p>
     <div class="geo-prompt-actions">
       <button type="button" class="btn btn-primary" id="geo-prompt-allow">Activer ma position</button>
@@ -116,5 +116,5 @@
 {{ zones_json|json_script:"zones-data" }}
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="{% static 'js/map-tiles.js' %}?v=2"></script>
-<script src="{% static 'js/results.js' %}?v=19"></script>
+<script src="{% static 'js/results.js' %}?v=20"></script>
 {% endblock %}
