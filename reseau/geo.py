@@ -154,6 +154,40 @@ def format_distance_km(dist_km: float) -> str:
     return f'{dist_km:.2f}'.replace('.', ',') + ' km'
 
 
+def realistic_road_km(air_km: float | None, road_km: float | None) -> tuple[float | None, str]:
+    """
+    Distance affichée proche de Google Maps.
+    OSRM public à Abidjan allonge souvent beaucoup les trajets ;
+    on corrige avec un facteur urbain réaliste (~1,20 × vol d'oiseau),
+    proche de Google Maps.
+    """
+    urban = 1.20
+    if road_km is None and air_km is None:
+        return None, 'none'
+    if road_km is None:
+        return round(air_km * urban, 2), 'est'
+    if air_km is None:
+        return round(road_km, 2), 'driving'
+
+    # Trop court (même nœud OSM) alors que les points sont éloignés
+    if air_km >= 0.2 and road_km < air_km * 0.4:
+        return round(air_km * urban, 2), 'est'
+
+    # OSRM trop long vs réalité Google (~1,15–1,5× air en ville)
+    if air_km >= 0.15 and road_km > air_km * 1.65:
+        return round(air_km * urban, 2), 'est'
+
+    return round(road_km, 2), 'driving'
+
+
+def estimate_duration_min(dist_km: float, mode: str = 'car') -> int:
+    """Durée approximative (ville ~22 km/h, pied ~4,5 km/h)."""
+    if dist_km is None or dist_km <= 0:
+        return 1
+    speed = 4.5 if mode == 'foot' else 22.0
+    return max(1, int(round((dist_km / speed) * 60)))
+
+
 def _osrm_table(url: str, user_agent: str, n_dest: int) -> list[float | None]:
     import ssl
 

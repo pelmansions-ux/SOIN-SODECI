@@ -7,10 +7,12 @@ import re
 
 # Ordre = priorité (plus précis en premier). Coords proches Google Maps.
 LANDMARKS: list[tuple[str, float, float]] = [
-    # --- Cocody très précis ---
+    # --- Cocody très précis (coords Nominatim / repères Google) ---
+    (r'VISION\s*2000', 5.3881002, -3.9733093),  # Caféier / Cocody (Nominatim)
     (r'PALM\s*CLUB|HOTEL\s*PALM', 5.3335, -3.9865),
     (r'LYC[EÉ]E\s*TECHNIQUE', 5.3398, -3.9912),
-    (r'CARREFOUR\s*ABATTA|ABATTA', 5.3720, -3.9320),
+    (r'CARREFOUR\s*ABATTA', 5.3726499, -3.9292045),
+    (r'\bABATTA\b', 5.3726499, -3.9292045),
     (r'B(OULE)?V(AR)?D\.?\s*DES\s*MARTYRS|BD\s*DES\s*MARTYRS', 5.3480, -3.9945),
     (r'CHU\s*(DE\s*)?COCODY|CHU\s*COCODY|INFES', 5.3465, -3.9868),
     (r'FAYA|G[EÉ]NIE\s*2000', 5.3920, -3.9580),
@@ -18,7 +20,8 @@ LANDMARKS: list[tuple[str, float, float]] = [
     (r'SOCOCE', 5.3545, -3.9860),
     (r'ABIDJAN\s*MALL|BONOUMIN', 5.3520, -3.9780),
     (r'WINNER\s*CHAPEL', 5.3780, -3.9480),
-    (r'VISION\s*2000', 5.3720, -3.9320),
+    (r'CAF[EÉ]IER', 5.3881, -3.9733),
+    (r'MAISON\s*PALMIER', 5.3520, -3.9880),
     (r'DEUX\s*PLATEAUX|2\s*PLATEAUX|2PLATEAUX|II\s*PLATEAUX|IIPLATEAUX', 5.3540, -3.9890),
     (r'RIVIERA\s*3|RIVIERA\s*III', 5.3555, -3.9480),
     (r'RIVIERA\s*2|RIVIERA\s*II|ALPHA\s*BLONDY', 5.3480, -3.9600),

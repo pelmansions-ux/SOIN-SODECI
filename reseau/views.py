@@ -7,8 +7,10 @@ from django.views.decorators.http import require_GET
 
 from .geo import (
     driving_route,
+    estimate_duration_min,
     format_distance_km,
     haversine_km,
+    realistic_road_km,
     road_distances_km,
     walking_route,
 )
@@ -139,18 +141,12 @@ def api_prestataires(request):
             distance_mode = 'driving'
             for it, d in zip(candidates, road):
                 air = it.get('distance_air_km')
-                # Garde-fou : OSRM peut coller 2 points au même nœud (ex. 20 m)
-                # alors que le vol d'oiseau est bien plus grand → on garde l'air.
-                if d is None:
-                    d = air
-                    it['distance_mode'] = 'air'
-                elif air is not None and air >= 0.25 and d < air * 0.35:
-                    d = air
-                    it['distance_mode'] = 'air'
-                else:
-                    it['distance_mode'] = 'driving'
+                d, mode = realistic_road_km(air, d)
+                it['distance_mode'] = mode
                 it['distance_km'] = d
-                it['distance_label'] = format_distance_km(d)
+                it['distance_label'] = format_distance_km(d) if d is not None else None
+                if d is not None:
+                    it['duration_min'] = estimate_duration_min(d, 'car')
             candidates.sort(
                 key=lambda x: (
                     x.get('distance_km') is None,
@@ -240,22 +236,38 @@ def api_itineraire(request):
     if preferred not in ('car', 'foot'):
         preferred = 'car'
 
+    air = haversine_km(o_lat, o_lng, d_lat, d_lng)
     car = driving_route(o_lat, o_lng, d_lat, d_lng)
     foot = walking_route(o_lat, o_lng, d_lat, d_lng)
 
+    def _correct(route, mode: str):
+        if not route:
+            return None
+        dist, _ = realistic_road_km(air, route.get('distance_km'))
+        if dist is None:
+            return route
+        out = dict(route)
+        out['distance_km'] = dist
+        out['distance_label'] = format_distance_km(dist)
+        out['duration_min'] = estimate_duration_min(dist, mode)
+        return out
+
+    car = _correct(car, 'car')
+    foot = _correct(foot, 'foot')
+
     if not car and not foot:
-        dist = haversine_km(o_lat, o_lng, d_lat, d_lng)
+        dist, _ = realistic_road_km(air, None)
         fallback = {
-            'mode': 'air',
-            'distance_km': round(dist, 2),
+            'mode': 'est',
+            'distance_km': dist,
             'distance_label': format_distance_km(dist),
-            'duration_min': None,
+            'duration_min': estimate_duration_min(dist, preferred),
             'coordinates': [[o_lat, o_lng], [d_lat, d_lng]],
         }
         return JsonResponse(
             {
                 'ok': True,
-                'active': 'air',
+                'active': 'est',
                 'car': None,
                 'foot': None,
                 **fallback,
