@@ -550,12 +550,14 @@
       return;
     }
     listEl.innerHTML = list
-      .map(function (p) {
+      .map(function (p, idx) {
         return (
           '<article class="p-card' +
           (selected && selected.id === p.id ? ' active' : '') +
           '" data-id="' +
           p.id +
+          '" style="--i:' +
+          Math.min(idx, 12) +
           '">' +
           '<div class="p-row">' +
           '<div class="p-main">' +
