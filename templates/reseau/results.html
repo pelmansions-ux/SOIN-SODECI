@@ -1,7 +1,7 @@
-{% extends 'base.html' %}
+﻿{% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Réseau de Soin SODECI{% endblock %}
+{% block title %}RÃ©seau de Soin SODECI{% endblock %}
 {% block body_class %}screen-results{% endblock %}
 
 {% block extra_head %}
@@ -25,14 +25,14 @@
 <div id="map" class="results-map" aria-label="Carte des prestataires"></div>
 
 <button type="button" id="btn-locate" class="btn-locate" aria-label="Activer ma position" title="Ma position">
-  <span aria-hidden="true">📍</span>
+  <span aria-hidden="true">ðŸ“</span>
 </button>
 
 <div id="geo-prompt" class="geo-prompt" hidden role="dialog" aria-labelledby="geo-prompt-title">
   <div class="geo-prompt-card">
     <p id="geo-prompt-title" class="geo-prompt-title">Activer la localisation</p>
     <p id="geo-prompt-text" class="geo-prompt-text">
-      Pour afficher les prestataires près de vous, autorisez la localisation du navigateur (cadenas 🔒 à côté de l’adresse du site).
+      Pour afficher les prestataires prÃ¨s de vous, autorisez la localisation du navigateur (cadenas ðŸ”’ Ã  cÃ´tÃ© de lâ€™adresse du site).
     </p>
     <div class="geo-prompt-actions">
       <button type="button" class="btn btn-primary" id="geo-prompt-allow">Activer ma position</button>
@@ -51,8 +51,8 @@
   <div id="browse-panel">
     <div class="sheet-head">
       <div class="sheet-titles">
-        <h1 id="sheet-title">À proximité</h1>
-        <p id="sheet-status" class="status" role="status" aria-live="polite">Localisation…</p>
+        <h1 id="sheet-title">Ã€ proximitÃ©</h1>
+        <p id="sheet-status" class="status" role="status" aria-live="polite">Localisationâ€¦</p>
       </div>
     </div>
 
@@ -71,31 +71,31 @@
     <div class="sheet-search">
       <label class="sr-only" for="zone-filter">Zone</label>
       <input id="zone-filter" type="search" placeholder="Filtrer une zone (optionnel)" autocomplete="off">
-      <button type="button" id="btn-clear-zone" class="btn btn-ghost btn-clear" hidden>✕</button>
+      <button type="button" id="btn-clear-zone" class="btn btn-ghost btn-clear" hidden>âœ•</button>
     </div>
     <div id="zone-suggest" class="zone-suggest" hidden></div>
   </div>
 
   <div id="selected-panel" class="selected-panel" hidden>
-    <button type="button" id="btn-back-list" class="btn-back">← Retour à la liste</button>
+    <button type="button" id="btn-back-list" class="btn-back">â† Retour Ã  la liste</button>
     <div class="selected-head">
-      <h2 id="selected-name">—</h2>
-      <p id="selected-distance" class="selected-distance" role="status" aria-live="polite">Calcul de la distance…</p>
+      <h2 id="selected-name">â€”</h2>
+      <p id="selected-distance" class="selected-distance" role="status" aria-live="polite">Calcul de la distanceâ€¦</p>
       <p id="selected-meta" class="muted"></p>
     </div>
-    <div class="travel-modes" role="tablist" aria-label="Mode de déplacement">
+    <div class="travel-modes" role="tablist" aria-label="Mode de dÃ©placement">
       <button type="button" class="travel-chip active" data-mode="car" id="mode-car">
-        <span class="travel-ico">🚗</span>
+        <span class="travel-ico">ðŸš—</span>
         <span class="travel-copy">
-          <strong id="car-label">—</strong>
+          <strong id="car-label">â€”</strong>
           <small>Voiture</small>
         </span>
       </button>
       <button type="button" class="travel-chip" data-mode="foot" id="mode-foot">
-        <span class="travel-ico">🚶</span>
+        <span class="travel-ico">ðŸš¶</span>
         <span class="travel-copy">
-          <strong id="foot-label">—</strong>
-          <small>À pied</small>
+          <strong id="foot-label">â€”</strong>
+          <small>Ã€ pied</small>
         </span>
       </button>
     </div>
@@ -108,7 +108,7 @@
 <div id="fiche" class="fiche" hidden>
   <div class="fiche-backdrop" id="fiche-backdrop"></div>
   <div class="fiche-panel" role="dialog" aria-modal="true" aria-labelledby="fiche-nom">
-    <button type="button" class="fiche-close" id="fiche-close" aria-label="Fermer">×</button>
+    <button type="button" class="fiche-close" id="fiche-close" aria-label="Fermer">Ã—</button>
     <div id="fiche-body"></div>
     <div id="fiche-mini-map"></div>
   </div>
@@ -123,7 +123,7 @@
     window.location.replace(url.toString());
   };
 </script>
-<script src="{% static 'js/results-gmaps.js' %}?v=4"></script>
+<script src="{% static 'js/results-gmaps.js' %}?v=5"></script>
 <script async defer
   src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=geometry&language=fr&region=CI&v=weekly&callback=initSoinGoogleMap"></script>
 {% else %}

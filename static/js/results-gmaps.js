@@ -650,12 +650,36 @@
         load();
         startWatch();
       },
-      function () {
-        setLocateBtn('off');
-        showGeoPrompt(deniedLocationHelp());
-        load();
+      function (err) {
+        if (err && err.code === 1) {
+          setLocateBtn('off');
+          showGeoPrompt(deniedLocationHelp());
+          load();
+          return;
+        }
+        // Délai dépassé / position indisponible (fréquent sur PC sans GPS) : réessai en Wi‑Fi/IP
+        navigator.geolocation.getCurrentPosition(
+          function (pos) {
+            hideGeoPrompt();
+            setLocateBtn('on');
+            onUserMoved(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy);
+            lastReloadAt = Date.now();
+            load();
+            startWatch();
+          },
+          function () {
+            setLocateBtn('off');
+            if (userLat == null) {
+              showGeoPrompt(
+                'Position introuvable pour le moment. Vérifiez que la localisation Windows est activée (Paramètres → Confidentialité → Localisation), puis réessayez.'
+              );
+            }
+            load();
+          },
+          { enableHighAccuracy: false, timeout: 20000, maximumAge: 300000 }
+        );
       },
-      { enableHighAccuracy: true, timeout: 30000, maximumAge: 0 }
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     );
   }
 
