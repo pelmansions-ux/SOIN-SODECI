@@ -66,6 +66,15 @@ def results(request):
         .order_by('zone')
     )
 
+    # ?carte=osm : repli automatique quand Google refuse la clé navigateur
+    browser_key = ''
+    if request.GET.get('carte') != 'osm':
+        browser_key = (
+            getattr(settings, 'GOOGLE_MAPS_BROWSER_KEY', '')
+            or google_api_key()
+            or getattr(settings, 'GOOGLE_MAPS_API_KEY', '')
+        )
+
     return render(
         request,
         'reseau/results.html',
@@ -73,11 +82,7 @@ def results(request):
             'chips': chips,
             'zones_json': zones,
             'type_labels': TYPE_LABELS,
-            'google_maps_api_key': (
-                getattr(settings, 'GOOGLE_MAPS_BROWSER_KEY', '')
-                or google_api_key()
-                or getattr(settings, 'GOOGLE_MAPS_API_KEY', '')
-            ),
+            'google_maps_api_key': browser_key,
         },
     )
 

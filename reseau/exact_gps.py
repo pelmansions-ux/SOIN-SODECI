@@ -35,13 +35,25 @@ def _load_json() -> dict[str, tuple[float, float]]:
     return _CACHE
 
 
-def lookup_exact(nom: str = '', adresse: str = '', zone: str = '', pk: int | None = None):
+def lookup_exact(
+    nom: str = '',
+    adresse: str = '',
+    zone: str = '',
+    pk: int | None = None,
+    commune: str = '',
+):
     data = _load_json()
     if pk is not None and str(pk) in data:
         return data[str(pk)]
     key = f'{(nom or "").strip().upper()}|{(zone or "").strip().upper()}'
     if key in data:
         return data[key]
+
+    from reseau.landmarks import city_outside_abidjan
+
+    # Les motifs ci-dessous désignent des lieux d'Abidjan
+    if city_outside_abidjan(commune, zone) is not None:
+        return None
     text = f'{nom} {adresse} {zone}'.upper()
     for pat, lat, lng in EXACT_BY_PATTERN:
         if re.search(pat, text, re.I):

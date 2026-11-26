@@ -47,8 +47,6 @@
   let bestAccuracy = Infinity;
   let map;
   let trafficLayer;
-  let directionsService;
-  let directionsRenderer;
   let userMarker;
   let userAccuracyCircle;
   let destMarker;
@@ -91,14 +89,6 @@
   }
   function setStatus(msg) {
     if (statusEl) statusEl.textContent = msg;
-  }
-  function formatDistanceKm(km) {
-    if (km == null || isNaN(km)) return '';
-    if (km < 1) return Math.round(km * 1000) + ' m';
-    return (
-      km.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) +
-      ' km'
-    );
   }
   function providerLabel(mode) {
     if (mode === 'google') return 'Google Maps';
@@ -168,7 +158,6 @@
   }
 
   function clearRoute() {
-    if (directionsRenderer) directionsRenderer.set('directions', null);
     if (serverRouteLine) {
       serverRouteLine.setMap(null);
       serverRouteLine = null;
@@ -302,18 +291,6 @@
     }
   }
 
-  function formatRouteLabel(result) {
-    if (!result || !result.routes || !result.routes[0]) return '';
-    var leg = result.routes[0].legs[0];
-    var dist = leg.distance ? leg.distance.text : '';
-    var dur = leg.duration_in_traffic
-      ? leg.duration_in_traffic.text
-      : leg.duration
-        ? leg.duration.text
-        : '';
-    return dist + (dur ? ' · ' + dur : '');
-  }
-
   function drawGoogleRoute(p) {
     if (!map || userLat == null || p.lat == null) return;
     clearMarkers();
@@ -326,63 +303,11 @@
       icon: pinIcon(emojiFor(p), true),
       zIndex: 800,
     });
-
-    var mode =
-      travelMode === 'foot'
-        ? google.maps.TravelMode.WALKING
-        : google.maps.TravelMode.DRIVING;
-    var req = {
-      origin: ll(userLat, userLng),
-      destination: ll(p.lat, p.lng),
-      travelMode: mode,
-      unitSystem: google.maps.UnitSystem.METRIC,
-      region: 'ci',
-      provideRouteAlternatives: false,
-    };
-    if (mode === google.maps.TravelMode.DRIVING) {
-      req.drivingOptions = {
-        departureTime: new Date(),
-        trafficModel: 'bestguess',
-      };
-    }
-
-    setSelectedDistance('Calcul Google Maps…', true);
-    directionsService.route(req, function (result, status) {
-      if (!selected || selected.id !== p.id) return;
-      if (status !== 'OK' || !result) {
-        drawServerRoute(p);
-        return;
-      }
-      directionsRenderer.setDirections(result);
-      var label = formatRouteLabel(result);
-      var leg = result.routes[0].legs[0];
-      var distText = leg.distance ? leg.distance.text : '';
-      var durMin = Math.max(
-        1,
-        Math.round(
-          ((leg.duration_in_traffic || leg.duration || {}).value || 60) / 60
-        )
-      );
-      var summary =
-        distText +
-        ' · ~' +
-        durMin +
-        ' min · ' +
-        (travelMode === 'foot' ? 'à pied' : 'en voiture');
-      setSelectedDistance(summary, false);
-      if (travelMode === 'car' && carLabel) {
-        carLabel.textContent = distText + ' · ' + durMin + ' min';
-      }
-      if (travelMode === 'foot' && footLabel) {
-        footLabel.textContent = distText + ' · ' + durMin + ' min';
-      }
-      // Charger l’autre mode pour le chip
-      prefetchOtherMode(p);
-      map.fitBounds(result.routes[0].bounds, sheetPad());
-    });
+    setSelectedDistance('Calcul de l’itinéraire…', true);
+    drawServerRoute(p);
   }
 
-  /** Itinéraire calculé par le serveur (Routes API) si le service JS est refusé. */
+  /** Itinéraire calculé par le serveur (Routes API Google, sinon OSRM). */
   function drawServerRoute(p) {
     if (!routeApi) {
       setSelectedDistance('Impossible de calculer l’itinéraire.', true);
@@ -442,32 +367,6 @@
         map.panTo(ll(p.lat, p.lng));
         map.setZoom(15);
       });
-  }
-
-  function prefetchOtherMode(p) {
-    var other = travelMode === 'car' ? 'foot' : 'car';
-    var mode =
-      other === 'foot'
-        ? google.maps.TravelMode.WALKING
-        : google.maps.TravelMode.DRIVING;
-    directionsService.route(
-      {
-        origin: ll(userLat, userLng),
-        destination: ll(p.lat, p.lng),
-        travelMode: mode,
-        unitSystem: google.maps.UnitSystem.METRIC,
-        region: 'ci',
-      },
-      function (result, status) {
-        if (status !== 'OK' || !result) return;
-        var leg = result.routes[0].legs[0];
-        var distText = leg.distance ? leg.distance.text : '—';
-        var durMin = Math.max(1, Math.round((leg.duration.value || 60) / 60));
-        if (other === 'car' && carLabel) carLabel.textContent = distText + ' · ' + durMin + ' min';
-        if (other === 'foot' && footLabel)
-          footLabel.textContent = distText + ' · ' + durMin + ' min';
-      }
-    );
   }
 
   function enterSelection(p) {
@@ -677,86 +576,6 @@
       renderList(items);
       renderMarkers(items);
     }
-    if (data.sorted_by_distance && data.distance_mode !== 'google') {
-      refineDistancesWithGoogle();
-    }
-  }
-
-  /** Recalcule les distances via Distance Matrix JS (= app Google Maps). */
-  function refineDistancesWithGoogle() {
-    if (
-      userLat == null ||
-      userLng == null ||
-      !items.length ||
-      typeof google === 'undefined' ||
-      !google.maps ||
-      !google.maps.DistanceMatrixService
-    ) {
-      return;
-    }
-    var targets = items.filter(function (p) {
-      return p.lat != null && p.lng != null;
-    });
-    if (!targets.length) return;
-
-    var service = new google.maps.DistanceMatrixService();
-    var chunk = 25;
-    var pending = Math.ceil(targets.length / chunk);
-    var gotAny = false;
-
-    function finishChunk() {
-      pending -= 1;
-      if (pending > 0) return;
-      if (!gotAny) return;
-      items.sort(function (a, b) {
-        var da = a.distance_km != null ? a.distance_km : 1e9;
-        var db = b.distance_km != null ? b.distance_km : 1e9;
-        return da - db;
-      });
-      setStatus(
-        items.length +
-          ' résultat' +
-          (items.length > 1 ? 's' : '') +
-          ' · Google Maps · plus proche → plus loin'
-      );
-      if (!selected) {
-        renderList(items);
-        renderMarkers(items);
-      }
-    }
-
-    for (var start = 0; start < targets.length; start += chunk) {
-      (function (batch) {
-        service.getDistanceMatrix(
-          {
-            origins: [ll(userLat, userLng)],
-            destinations: batch.map(function (p) {
-              return ll(p.lat, p.lng);
-            }),
-            travelMode: google.maps.TravelMode.DRIVING,
-            unitSystem: google.maps.UnitSystem.METRIC,
-            region: 'CI',
-          },
-          function (response, status) {
-            if (status === 'OK' && response && response.rows && response.rows[0]) {
-              var els = response.rows[0].elements || [];
-              els.forEach(function (el, i) {
-                if (!el || el.status !== 'OK' || !el.distance) return;
-                var km = el.distance.value / 1000;
-                batch[i].distance_km = Math.round(km * 100) / 100;
-                batch[i].distance_label = formatDistanceKm(batch[i].distance_km);
-                batch[i].distance_mode = 'google';
-                if (el.duration) {
-                  batch[i].duration_min = Math.max(1, Math.round(el.duration.value / 60));
-                }
-                gotAny = true;
-              });
-            }
-            finishChunk();
-          }
-        );
-      })(targets.slice(start, start + chunk));
-    }
   }
 
   function load() {
@@ -923,17 +742,6 @@
     });
     trafficLayer = new google.maps.TrafficLayer();
     trafficLayer.setMap(map);
-    directionsService = new google.maps.DirectionsService();
-    directionsRenderer = new google.maps.DirectionsRenderer({
-      map: map,
-      suppressMarkers: true,
-      polylineOptions: {
-        strokeColor: '#1a73e8',
-        strokeOpacity: 0.95,
-        strokeWeight: 6,
-      },
-    });
-
     map.addListener('dragstart', function () {
       followUser = false;
     });

@@ -10,7 +10,9 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         n = 0
         for p in Prestataire.objects.filter(actif=True).iterator():
-            coords = lookup_exact(nom=p.nom, adresse=p.adresse, zone=p.zone, pk=p.pk)
+            coords = lookup_exact(
+                nom=p.nom, adresse=p.adresse, zone=p.zone, pk=p.pk, commune=p.commune
+            )
             if not coords:
                 continue
             if p.latitude != coords[0] or p.longitude != coords[1]:

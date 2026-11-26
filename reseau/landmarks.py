@@ -33,15 +33,15 @@ LANDMARKS: list[tuple[str, float, float]] = [
     (r'COCODY\s*NORD|GRANDE\s*OURSE', 5.3720, -3.9780),
     (r'BLOCKHAUS|BLOC\s*HAUS', 5.3450, -3.9920),
     (r'AMBASSADES', 5.3350, -3.9950),
-    (r'ST\s*JEAN|SAINT\s*JEAN', 5.3580, -3.9820),
+    (r'\bST\s*JEAN\b|\bSAINT\s*JEAN\b', 5.3580, -3.9820),
     (r'VAL\s*DODO', 5.3650, -3.9700),
     (r'ATTOBAN', 5.3750, -3.9400),
-    (r'DANGA', 5.3580, -3.9950),
-    (r'DANGUI|DANGUIRA', 5.3680, -3.9550),
+    (r'\bDANGA\b', 5.3580, -3.9950),
+    (r'\bDANGUI\b|DANGUIRA', 5.3680, -3.9550),
     (r'SID[EÉ]CI', 5.3500, -3.9800),
-    (r'RTI', 5.3550, -3.9980),
-    (r'ENA\b|ECOLE\s*NATIONALE\s*D.?ADMINISTRATION', 5.3410, -3.9880),
-    (r'ZOO', 5.3450, -3.9950),
+    (r'\bRTI\b', 5.3550, -3.9980),
+    (r'\bENA\b|ECOLE\s*NATIONALE\s*D.?ADMINISTRATION', 5.3410, -3.9880),
+    (r'\bZOO\b', 5.3450, -3.9950),
     # Autres Abidjan
     (r'ZONE\s*4', 5.2950, -3.9950),
     (r'TREICHVILLE', 5.2900, -4.0050),
@@ -76,6 +76,28 @@ COMMUNE_FALLBACK: dict[str, tuple[float, float]] = {
 }
 
 
+ABIDJAN_AREAS = {
+    'ABIDJAN', 'ABOBO', 'ADJAME', 'ANGRE', 'ANYAMA', 'ATTECOUBE', 'BINGERVILLE',
+    'COCODY', 'KOUMASSI', 'MARCORY', 'PALMERAIE', 'PLATEAU', 'PORT BOUET',
+    'PORT-BOUET', 'RIVIERA', 'SONGON', 'TREICHVILLE', 'VRIDI', 'YOPOUGON',
+}
+
+
+def city_outside_abidjan(commune: str = '', zone: str = '') -> tuple[float, float] | None:
+    """Centre de la ville si le prestataire est hors du Grand Abidjan, sinon None."""
+    from reseau.geo import COMMUNE_COORDS, normalize_key
+
+    for candidate in (commune, zone):
+        key = normalize_key(candidate)
+        if not key:
+            continue
+        if key in ABIDJAN_AREAS:
+            return None
+        if key in COMMUNE_COORDS:
+            return COMMUNE_COORDS[key]
+    return None
+
+
 def _hash_offset(seed: str, scale: float) -> tuple[float, float]:
     h = int(hashlib.md5(seed.encode('utf-8')).hexdigest()[:8], 16)
     dlat = ((h % 41) - 20) * scale
@@ -96,9 +118,15 @@ def refine_coords(
     from reseau.exact_gps import lookup_exact
 
     # 1) Coordonnées vérifiées (Nominatim / Google) — aucun décalage
-    exact = lookup_exact(nom=nom, adresse=adresse, zone=zone, pk=pk)
+    exact = lookup_exact(nom=nom, adresse=adresse, zone=zone, pk=pk, commune=commune)
     if exact:
         return exact
+
+    # Hors Abidjan : les repères ci-dessous sont tous à Abidjan
+    city = city_outside_abidjan(commune, zone)
+    if city is not None:
+        dlat, dlng = _hash_offset(f'{nom}|{adresse}|{zone}', 0.00055)
+        return city[0] + dlat, city[1] + dlng
 
     text = f'{adresse} {secteur} {zone} {commune} {nom}'.upper()
     base = None
