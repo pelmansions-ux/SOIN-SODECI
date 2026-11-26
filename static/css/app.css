@@ -564,9 +564,12 @@ h1 { font-size: clamp(1.7rem, 5vw, 2.3rem); line-height: 1.1; }
   .brand-pill { background: rgba(15, 42, 54, 0.92); }
 }
 
+/* !important : Google Maps impose position:relative en style inline sur le conteneur */
 .results-map {
-  position: fixed;
+  position: fixed !important;
   inset: 0;
+  width: 100%;
+  height: 100dvh;
   z-index: 1;
   background: #d7e8ef;
   animation: map-fade 0.9s var(--ease-soft) both;
