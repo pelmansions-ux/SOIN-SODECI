@@ -7,6 +7,8 @@
   if (!sheet || !mapEl) return;
 
   const api = sheet.dataset.api;
+  const routeApi = sheet.dataset.routeApi;
+  let serverRouteLine = null;
   const listEl = document.getElementById('results-list');
   const statusEl = document.getElementById('sheet-status');
   const titleEl = document.getElementById('sheet-title');
@@ -167,6 +169,10 @@
 
   function clearRoute() {
     if (directionsRenderer) directionsRenderer.set('directions', null);
+    if (serverRouteLine) {
+      serverRouteLine.setMap(null);
+      serverRouteLine = null;
+    }
     if (destMarker) {
       destMarker.setMap(null);
       destMarker = null;
@@ -344,9 +350,7 @@
     directionsService.route(req, function (result, status) {
       if (!selected || selected.id !== p.id) return;
       if (status !== 'OK' || !result) {
-        setSelectedDistance('Impossible de calculer l’itinéraire Google.', true);
-        map.panTo(ll(p.lat, p.lng));
-        map.setZoom(15);
+        drawServerRoute(p);
         return;
       }
       directionsRenderer.setDirections(result);
@@ -376,6 +380,68 @@
       prefetchOtherMode(p);
       map.fitBounds(result.routes[0].bounds, sheetPad());
     });
+  }
+
+  /** Itinéraire calculé par le serveur (Routes API) si le service JS est refusé. */
+  function drawServerRoute(p) {
+    if (!routeApi) {
+      setSelectedDistance('Impossible de calculer l’itinéraire.', true);
+      return;
+    }
+    var params = new URLSearchParams({
+      lat: String(userLat),
+      lng: String(userLng),
+      dest_lat: String(p.lat),
+      dest_lng: String(p.lng),
+      mode: travelMode,
+    });
+    fetch(routeApi + '?' + params.toString(), {
+      headers: { Accept: 'application/json' },
+      credentials: 'same-origin',
+    })
+      .then(function (r) {
+        if (!r.ok) throw new Error('http');
+        return r.json();
+      })
+      .then(function (data) {
+        if (!selected || selected.id !== p.id) return;
+        var path = (data.coordinates || []).map(function (c) {
+          return ll(c[0], c[1]);
+        });
+        if (serverRouteLine) serverRouteLine.setMap(null);
+        serverRouteLine = new google.maps.Polyline({
+          map: map,
+          path: path,
+          strokeColor: travelMode === 'foot' ? '#5f6368' : '#1a73e8',
+          strokeOpacity: 0.95,
+          strokeWeight: 6,
+        });
+        var bounds = new google.maps.LatLngBounds();
+        path.forEach(function (pt) {
+          bounds.extend(pt);
+        });
+        if (path.length) map.fitBounds(bounds, sheetPad());
+        setSelectedDistance(
+          (data.distance_label || '—') +
+            ' · ~' +
+            (data.duration_min || 1) +
+            ' min · ' +
+            (travelMode === 'foot' ? 'à pied' : 'en voiture'),
+          false
+        );
+        if (data.car && carLabel) {
+          carLabel.textContent = data.car.distance_label + ' · ' + data.car.duration_min + ' min';
+        }
+        if (data.foot && footLabel) {
+          footLabel.textContent =
+            data.foot.distance_label + ' · ' + data.foot.duration_min + ' min';
+        }
+      })
+      .catch(function () {
+        setSelectedDistance('Impossible de calculer l’itinéraire.', true);
+        map.panTo(ll(p.lat, p.lng));
+        map.setZoom(15);
+      });
   }
 
   function prefetchOtherMode(p) {

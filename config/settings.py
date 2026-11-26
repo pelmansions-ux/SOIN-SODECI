@@ -18,6 +18,8 @@ SECRET_KEY = os.environ.get(
 GOOGLE_MAPS_API_KEY = (
     os.environ.get('GOOGLE_MAPS_API_KEY') or os.environ.get('GOOGLE_API_KEY') or ''
 ).strip()
+# Clé navigateur (restreinte par référents HTTP) pour Maps JavaScript ; sinon GOOGLE_MAPS_API_KEY
+GOOGLE_MAPS_BROWSER_KEY = (os.environ.get('GOOGLE_MAPS_BROWSER_KEY') or '').strip()
 
 DEBUG = os.environ.get('DJANGO_DEBUG', 'True').lower() in ('1', 'true', 'yes')
 

@@ -73,7 +73,11 @@ def results(request):
             'chips': chips,
             'zones_json': zones,
             'type_labels': TYPE_LABELS,
-            'google_maps_api_key': google_api_key() or getattr(settings, 'GOOGLE_MAPS_API_KEY', ''),
+            'google_maps_api_key': (
+                getattr(settings, 'GOOGLE_MAPS_BROWSER_KEY', '')
+                or google_api_key()
+                or getattr(settings, 'GOOGLE_MAPS_API_KEY', '')
+            ),
         },
     )
 
