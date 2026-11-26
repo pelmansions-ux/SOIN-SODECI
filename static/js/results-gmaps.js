@@ -751,6 +751,20 @@
     });
   }
 
+  /** Facturation inactive, quota… : Google affiche un écran d'erreur sans appeler gm_authFailure. */
+  function watchGoogleMapError() {
+    var tries = 0;
+    var timer = setInterval(function () {
+      tries += 1;
+      if (mapEl.querySelector('.gm-err-container')) {
+        clearInterval(timer);
+        if (typeof window.gm_authFailure === 'function') window.gm_authFailure();
+      } else if (tries >= 20) {
+        clearInterval(timer);
+      }
+    }, 500);
+  }
+
   window.initSoinGoogleMap = function () {
     map = new google.maps.Map(mapEl, {
       center: { lat: 5.36, lng: -4.01 },
@@ -766,6 +780,7 @@
     });
     trafficLayer = new google.maps.TrafficLayer();
     trafficLayer.setMap(map);
+    watchGoogleMapError();
     map.addListener('dragstart', function () {
       followUser = false;
     });
